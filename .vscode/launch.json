@@ -1,0 +1,36 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "即时调试 Mall-BE",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload"
+            ],
+            "env": {
+                // [必须] 请指定 "secret"，它必须是一个32位的随机数字字母字符串, 你可以使用 `openssl rand -hex 32` 来生成一个
+                // [可选] 可以指定 "log"，它必须是 `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG` 中的一个，如果你没有指定，将被缺省为 `INFO`
+            },
+            "jinja": true
+        },
+        {
+            "name": "运行 Mall-BE",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app"
+            ],
+            "env": {
+                // [必须] 请指定 "secret"，它必须是一个32位的随机数字字母字符串, 你可以使用 `openssl rand -hex 32` 来生成一个
+                // [可选] 可以指定 "log"，它必须是 `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG` 中的一个，如果你没有指定，将被缺省为 `INFO`
+            }
+        },
+    ]
+}
