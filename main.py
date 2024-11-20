@@ -1,10 +1,8 @@
-import logging
 from os import name
 
 from fastapi import FastAPI
 
-import Services.Log.logger
-from Services.Config.config import env
+from Services.Log.logger import logging
 
 log = logging.getLogger("main")
 

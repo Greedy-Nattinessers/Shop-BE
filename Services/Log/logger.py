@@ -4,10 +4,10 @@ import fastapi
 from concurrent_log_handler import ConcurrentTimedRotatingFileHandler
 from rich.logging import RichHandler
 
-from Services.Config.config import env
+from Services.Config.config import config
 
 logging.basicConfig(
-    level=env.log_level,
+    level=config.log_level,
     format="%(asctime)s - %(name)s [%(levelname)s] : %(message)s",
     datefmt="[%X]",
     handlers=[

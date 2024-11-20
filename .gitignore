@@ -178,3 +178,5 @@ pyrightconfig.json
 
 # IDE files
 .idea/
+.vscode/
+
