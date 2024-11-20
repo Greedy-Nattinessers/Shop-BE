@@ -32,8 +32,10 @@ class EnvConfig(BaseModel):
         required = ["secret_key", "db_url", "db_name", "db_user", "db_password"]
         normal = ["log_level"]
         for req in required:
-            if (value := os.getenv(req.upper())) is None:
-                raise InvalidConfigError(f"Missing environment variable: {req}")
+            if (value := os.getenv(req.upper())) is None or value.__len__() != 32:
+                raise InvalidConfigError(
+                    f"Invalid or missing {req} environment variable."
+                )
             self.__setattr__(req, value)
         for norm in normal:
             if (value := os.getenv(norm.upper())) is not None:
