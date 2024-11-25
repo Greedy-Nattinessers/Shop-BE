@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mall-be"
+name = "shop-be"
 version = "0.1.0"
 description = ""
 authors = ["BiDuang <me@biduang.cn>"]
@@ -14,6 +14,7 @@ python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 sqlalchemy = "^2.0.36"
 slowapi = "^0.1.9"
+mysqlclient = "^2.2.6"
 
 
 [build-system]
