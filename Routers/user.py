@@ -3,6 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
@@ -51,13 +52,12 @@ async def user_reg(
 @limiter.limit("5/minute")
 async def user_login(
     request: Request,
-    username: str = Form(),
-    password: str = Form(),
+    body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[Token]:
-    user: UserDb | None = db.query(UserDb).filter(UserDb.username == username).first()
+    user: UserDb | None = db.query(UserDb).filter(UserDb.username == body.username).first()
 
-    if user is None or not pwd_ctx.verify(password, user.password):
+    if user is None or not pwd_ctx.verify(body.password, user.password):
         raise ExceptionResponse.AUTH_FAILED
 
     token = create_access_token(
