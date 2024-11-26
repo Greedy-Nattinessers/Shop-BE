@@ -12,6 +12,6 @@ logging.basicConfig(
     datefmt="[%X]",
     handlers=[
         RichHandler(rich_tracebacks=True, tracebacks_suppress=[fastapi]),
-        ConcurrentTimedRotatingFileHandler("latest.log", when="midnight", interval=1),
+        ConcurrentTimedRotatingFileHandler("Logs/latest.log", when="midnight", interval=1),
     ],
 )

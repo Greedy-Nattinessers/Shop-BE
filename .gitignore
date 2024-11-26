@@ -180,3 +180,8 @@ pyrightconfig.json
 .idea/
 .vscode/
 
+.__latest.lock
+
+# Logs
+
+Logs/*.log
