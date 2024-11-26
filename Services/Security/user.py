@@ -55,6 +55,6 @@ def get_current_user(
 
 
 def verify_user(user: User, permission: Permission) -> bool:
-    if user.permission <permission:
+    if user.permission < permission:
         raise ExceptionResponse.PERMISSION_DENIED
     return True

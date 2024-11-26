@@ -1,7 +1,6 @@
-from sqlalchemy import VARCHAR, TEXT, DECIMAL, INT
+from sqlalchemy import DECIMAL, INT, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
-from Models import user
 from Services.Database.database import Base
 
 
