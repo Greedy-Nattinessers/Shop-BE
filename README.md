@@ -15,6 +15,16 @@
 poetry install
 ```
 
+如果在 Linux 下，必须先安装前置的 MySQL 依赖:
+
+```bash
+sudo apt-get install python3-dev default-libmysqlclient-dev build-essential pkg-config # Debian / Ubuntu
+```
+
+```bash
+sudo yum install python3-devel mysql-devel pkgconfig # Red Hat / CentOS
+```
+
 在程序根目录下创建一个`.env`文件，内容如下(请将花括号内内容替换为实际内容):
 
 ```env

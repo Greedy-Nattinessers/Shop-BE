@@ -11,12 +11,10 @@
             "module": "uvicorn",
             "args": [
                 "main:app",
-                "--reload"
+                "--reload",
+                "--port",
+                "8123"
             ],
-            "env": {
-                // [必须] 请指定 "secret"，它必须是一个32位的随机数字字母字符串, 你可以使用 `openssl rand -hex 32` 来生成一个
-                // [可选] 可以指定 "log"，它必须是 `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG` 中的一个，如果你没有指定，将被缺省为 `INFO`
-            },
             "jinja": true
         },
         {
@@ -25,12 +23,10 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "main:app"
-            ],
-            "env": {
-                // [必须] 请指定 "secret"，它必须是一个32位的随机数字字母字符串, 你可以使用 `openssl rand -hex 32` 来生成一个
-                // [可选] 可以指定 "log"，它必须是 `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG` 中的一个，如果你没有指定，将被缺省为 `INFO`
-            }
+                "main:app",
+                "--port",
+                "8123"
+            ]
         },
     ]
 }

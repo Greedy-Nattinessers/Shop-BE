@@ -1,9 +1,10 @@
 [tool.poetry]
-name = "mall-be"
+name = "shop-be"
 version = "0.1.0"
 description = ""
 authors = ["BiDuang <me@biduang.cn>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -11,9 +12,10 @@ fastapi = { extras = ["all"], version = "^0.115.5" }
 rich = "^13.9.4"
 concurrent-log-handler = "^0.9.25"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 sqlalchemy = "^2.0.36"
 slowapi = "^0.1.9"
+mysqlclient = "^2.2.6"
+bcrypt = "^4.2.1"
 
 
 [build-system]

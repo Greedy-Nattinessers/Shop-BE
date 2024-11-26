@@ -2,19 +2,24 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
+import bcrypt
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from Models.database import UserDb
 from Models.response import ExceptionResponse, StandardResponse
-from Models.user import Token
+from Models.user import Permission, Token, UpdateUser, User
 from Services.Database.database import get_db
 from Services.Limiter.limiter import limiter
-from Services.Security.user import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
+from Services.Security.user import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    create_access_token,
+    get_current_user,
+    verify_user,
+)
 
 user_router = APIRouter(prefix="/user")
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 logger = logging.getLogger("user")
 
 
@@ -40,7 +45,8 @@ async def user_reg(
             uid=uuid4().hex,
             email=email,
             username=username,
-            password=pwd_ctx.hash(password),
+            password=bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()),
+            permission=Permission.User.value,
         )
     )
     db.commit()
@@ -51,13 +57,16 @@ async def user_reg(
 @limiter.limit("5/minute")
 async def user_login(
     request: Request,
-    username: str = Form(),
-    password: str = Form(),
+    body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[Token]:
-    user: UserDb | None = db.query(UserDb).filter(UserDb.username == username).first()
+    user: UserDb | None = (
+        db.query(UserDb).filter(UserDb.username == body.username).first()
+    )
 
-    if user is None or not pwd_ctx.verify(password, user.password):
+    if user is None or not bcrypt.checkpw(
+        bytes(body.password, "utf-8"), bytes(user.password, "utf-8")
+    ):
         raise ExceptionResponse.AUTH_FAILED
 
     token = create_access_token(
@@ -66,3 +75,30 @@ async def user_login(
     )
 
     return StandardResponse[Token](data=Token(access_token=token, token_type="bearer"))
+
+
+@user_router.put("/profile", response_model=StandardResponse)
+async def user_update(
+    body: UpdateUser,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse:
+    if body.uid != user.uid and verify_user(user, Permission.Admin):
+        raise ExceptionResponse.PERMISSION_DENIED
+
+    if (record := db.query(UserDb).filter(UserDb.uid == body.uid).first()) is not None:
+        if body.password is not None and body.new_password is not None:
+            if not bcrypt.checkpw(
+                bytes(body.password, "utf-8"), bytes(record.password, "utf-8")
+            ):
+                raise ExceptionResponse.AUTH_FAILED
+            record.password = bcrypt.hashpw(
+                bytes(body.new_password, "utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
+
+        if body.permission is not None:
+            record.permission = body.permission
+        db.commit()
+        return StandardResponse(status_code=200, message="User updated")
+    else:
+        raise ExceptionResponse.NOT_FOUND

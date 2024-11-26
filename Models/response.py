@@ -9,6 +9,11 @@ class ExceptionResponse:
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    PERMISSION_DENIED = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Permission denied",
+    )
+
     NOT_FOUND = HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Not found",

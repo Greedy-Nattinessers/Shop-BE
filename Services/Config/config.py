@@ -1,7 +1,6 @@
 import os
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
 
 
 class InvalidConfigError(Exception):
@@ -18,7 +17,7 @@ class InvalidConfigError(Exception):
         return self.msg
 
 
-class EnvConfig(BaseModel):
+class EnvConfig:
     secret_key: str
     db_url: str
     db_name: str
@@ -30,16 +29,18 @@ class EnvConfig(BaseModel):
         load_dotenv()
 
         required = ["secret_key", "db_url", "db_name", "db_user", "db_password"]
-        normal = ["log_level"]
+        normal = [("log_level", "INFO")]
         for req in required:
-            if (value := os.getenv(req.upper())) is None or value.__len__() != 32:
+            if (v := os.getenv(req.upper())) is None or v == "":
                 raise InvalidConfigError(
                     f"Invalid or missing {req} environment variable."
                 )
-            self.__setattr__(req, value)
+            setattr(self, req, v)
         for norm in normal:
-            if (value := os.getenv(norm.upper())) is not None:
-                self.__setattr__(norm, value)
+            if (v := os.getenv(norm[0].upper())) is None or v == "":
+                setattr(self, norm[0], norm[1])
+            else:
+                setattr(self, norm[0], v)
         super().__init__()
 
 

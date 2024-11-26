@@ -1,21 +1,38 @@
-from sqlalchemy import Text
+from sqlalchemy import DECIMAL, INT, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
-from Models import user
 from Services.Database.database import Base
 
 
 class UserDb(Base):
     __tablename__ = "user"
     uid: Mapped[str] = mapped_column(
-        Text, primary_key=True, nullable=False, unique=True, index=True
+        VARCHAR(32),
+        primary_key=True,
+        nullable=False,
+        unique=True,
+        index=True,
     )
-    username: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    password: Mapped[str] = mapped_column(Text, nullable=False)
+    username: Mapped[str] = mapped_column(TEXT, nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(TEXT, nullable=False, unique=True)
+    password: Mapped[str] = mapped_column(TEXT, nullable=False)
+    permission: Mapped[int] = mapped_column(INT, nullable=False)
+
+
+class CommodityDb(Base):
+    __tablename__ = "commodity"
+    cid: Mapped[str] = mapped_column(
+        VARCHAR(32),
+        primary_key=True,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(TEXT, nullable=False)
+    price: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
+    description: Mapped[str] = mapped_column(TEXT)
 
 class UserCartDb(Base):
     __tablename__ = "UserCart"
-    userUid:Mapped[str] = mapped_column(Text, primary_key=True)
-    productId: Mapped[str] = mapped_column(Text,primary_key=True)
-
+    userUid:Mapped[str] = mapped_column(TEXT, primary_key=True)
+    productId: Mapped[str] = mapped_column(TEXT,primary_key=True)
