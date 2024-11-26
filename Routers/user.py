@@ -2,9 +2,9 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
+import bcrypt
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from Models.database import UserDb
@@ -12,10 +12,10 @@ from Models.response import ExceptionResponse, StandardResponse
 from Models.user import Token
 from Services.Database.database import get_db
 from Services.Limiter.limiter import limiter
-from Services.Security.user import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
+from Services.Security.user import (ACCESS_TOKEN_EXPIRE_MINUTES,
+                                    create_access_token)
 
 user_router = APIRouter(prefix="/user")
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 logger = logging.getLogger("user")
 
 
@@ -41,7 +41,8 @@ async def user_reg(
             uid=uuid4().hex,
             email=email,
             username=username,
-            password=pwd_ctx.hash(password),
+            password=bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()),
+            permission=0,
         )
     )
     db.commit()
@@ -55,9 +56,13 @@ async def user_login(
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[Token]:
-    user: UserDb | None = db.query(UserDb).filter(UserDb.username == body.username).first()
+    user: UserDb | None = (
+        db.query(UserDb).filter(UserDb.username == body.username).first()
+    )
 
-    if user is None or not pwd_ctx.verify(body.password, user.password):
+    if user is None or not bcrypt.checkpw(
+        bytes(body.password, "utf-8"), bytes(user.password, "utf-8")
+    ):
         raise ExceptionResponse.AUTH_FAILED
 
     token = create_access_token(
