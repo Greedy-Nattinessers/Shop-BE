@@ -9,6 +9,11 @@ class ExceptionResponse:
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    CAPTCHA_FAILED = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Captcha validation failed",
+    )
+
     PERMISSION_DENIED = HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Permission denied",

@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from Models.database import UserDb
 from Models.response import ExceptionResponse, StandardResponse
 from Models.user import Permission, Token, UpdateUser, User
+from Services.Cache.cache import cache
+from Services.Mail.mail import Purpose, send_captcha
 from Services.Database.database import get_db
 from Services.Limiter.limiter import limiter
 from Services.Security.user import (
@@ -23,6 +25,15 @@ user_router = APIRouter(prefix="/user")
 logger = logging.getLogger("user")
 
 
+@user_router.post("/captcha")
+@limiter.limit("1/minute")
+async def user_req_captcha(request: Request, email: str = Form()) -> StandardResponse:
+    ip = request.client.host if request.client else "Unknown"
+    captcha = send_captcha(email, Purpose.REGISTER, ip)
+    await cache.set(email, captcha, ttl=300)
+    return StandardResponse(status_code=200, message="Captcha sent")
+
+
 @user_router.post("/register", response_model=StandardResponse)
 @limiter.limit("5/minute")
 async def user_reg(
@@ -30,6 +41,7 @@ async def user_reg(
     email: str = Form(),
     username: str = Form(),
     password: str = Form(),
+    captcha: str = Form(),
     db: Session = Depends(get_db),
 ) -> StandardResponse:
     if (
@@ -39,6 +51,11 @@ async def user_reg(
         is not None
     ):
         raise HTTPException(status_code=400, detail="User already exists")
+
+    if (cached_captcha := await cache.get(email)) is None or cached_captcha != captcha:
+        raise ExceptionResponse.CAPTCHA_FAILED
+    
+    await cache.delete(email)
 
     db.add(
         UserDb(

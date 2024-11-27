@@ -31,6 +31,10 @@ DB_URL={数据库连接地址，包含URL和端口}
 DB_NAME={数据库名}
 DB_USER={数据库用户名}
 DB_PASSWORD={数据库密码}
+EMAIL_HOST={SMTP服务器地址}
+EMAIL_PORT={SMTP服务器端口}
+EMAIL_ADDR={邮箱地址}
+EMAIL_PWD={邮箱密码}
 LOG_LEVEL={日志级别, 可选项: DEBUG, INFO, WARNING, ERROR, CRITICAL，可不填}
 ```
 
