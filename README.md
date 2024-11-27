@@ -5,6 +5,7 @@
 必须拥有以下环境:
 
 - Python 3.12+
+- MySQL 服务器
 - Poetry
 
 安装依赖:
@@ -43,6 +44,10 @@ LOG_LEVEL={日志级别, 可选项: DEBUG, INFO, WARNING, ERROR, CRITICAL，可�
 ```bash
 openssl rand -hex 32
 ```
+
+在 MySQL 服务器中运行根目录下的 `init.sql` 文件以初始化数据库结构。
+
+默认用户注册时只有普通用户权限，如果需要添加管理员权限，请在数据库中手动修改用户权限。拥有一个管理员账号后，可以通过管理员账号添加其他管理员。
 
 ## 运行方式 🚀
 
