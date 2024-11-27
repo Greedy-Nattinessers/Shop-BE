@@ -32,7 +32,7 @@ class CommodityDb(Base):
     price: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
     description: Mapped[str] = mapped_column(TEXT)
 
-class UserCartDb(Base):
-    __tablename__ = "UserCart"
+class CartDb(Base):
+    __tablename__ = "cart"
     userUid:Mapped[str] = mapped_column(TEXT, primary_key=True)
     productId: Mapped[str] = mapped_column(TEXT,primary_key=True)
