@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from Models.commodity import Commodity, CreateCommodity
 from Models.database import CommodityDb
-from Models.response import ExceptionResponse, StandardResponse
+from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
 from Models.user import Permission, User
 from Services.Database.database import get_db
 from Services.Limiter.slow_limiter import freq_limiter
@@ -17,13 +17,13 @@ shop_router = APIRouter(prefix="/shop")
 logger = logging.getLogger("shop")
 
 
-@shop_router.post("/add", response_model=StandardResponse)
+@shop_router.post("/add", response_model=BaseResponse)
 async def add_commodity(
     body: CreateCommodity = Form(),
     img: UploadFile | None = None,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> StandardResponse:
+) -> StandardResponse[None]:
     assert verify_user(user, Permission.Admin)
 
     fid = None
@@ -35,16 +35,16 @@ async def add_commodity(
     db.add(CommodityDb(**body.to_commodity(cid, fid).model_dump()))
     db.commit()
 
-    return StandardResponse(status_code=201, message="Commodity added")
+    return StandardResponse[None](status_code=201, message="Commodity added")
 
 
-@shop_router.get("/all", response_model=StandardResponse)
+@shop_router.get("/all", response_model=BaseResponse)
 @freq_limiter.limit("10/minute")
 async def all_commodity(
     request: Request, page: int = 1, db: Session = Depends(get_db)
 ) -> StandardResponse[list[Commodity]]:
     if page < 1:
-        page = 1
+        raise ExceptionResponseEnum.INVALID_OPERATION()
 
     commodities = [
         Commodity(**item.__dict__)
@@ -52,22 +52,22 @@ async def all_commodity(
     ]
 
     return StandardResponse[list[Commodity]](
-        status_code=200, message="Commodities", data=commodities
+        status_code=200, message=None, data=commodities
     )
 
 
-@shop_router.get("/image", response_model=StandardResponse)
+@shop_router.get("/image", response_class=Response)
 async def get_commodity_image(cid: str):
     if (data := await load_file_async(cid)) is not None:
         return Response(content=data[0], media_type=data[1])
 
 
-@shop_router.put("/update", response_model=StandardResponse)
+@shop_router.put("/update", response_model=BaseResponse)
 async def edit_commodity(
     body: Commodity,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> StandardResponse:
+) -> StandardResponse[None]:
     assert verify_user(user, Permission.Admin)
 
     if (
@@ -77,22 +77,23 @@ async def edit_commodity(
         record.price = body.price
         record.description = body.description
         db.commit()
-        return StandardResponse(status_code=200, message="Commodity updated")
+        return StandardResponse[None](status_code=200, message="Commodity updated")
     else:
-        raise ExceptionResponse.NOT_FOUND
+        raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.delete("/delete", response_model=StandardResponse)
+@shop_router.delete("/delete", response_model=BaseResponse)
 async def remove_commodity(
-    cid: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
-) -> StandardResponse:
+    cid: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> StandardResponse[None]:
     assert verify_user(user, Permission.Admin)
+    
     if (
         record := db.query(CommodityDb).filter(CommodityDb.cid == cid).first()
     ) is not None:
         db.delete(record)
         db.commit()
         remove_file(cid)
-        return StandardResponse(status_code=200, message="Commodity deleted")
+        return StandardResponse[None](status_code=200, message="Commodity deleted")
     else:
-        raise ExceptionResponse.NOT_FOUND
+        raise ExceptionResponseEnum.NOT_FOUND()

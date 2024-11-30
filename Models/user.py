@@ -11,6 +11,9 @@ class Permission(int, Enum):
     def __lt__(self, value: int) -> bool:
         return self.value < value
 
+    def __call__(self) -> int:
+        return self.value
+
 
 class User(BaseModel):
     uid: str
