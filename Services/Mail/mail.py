@@ -15,7 +15,7 @@ class Purpose(Enum):
 secure_rng = secrets.SystemRandom()
 
 
-with open("Templates/captcha.html", "r") as f:
+with open("Templates/captcha.html", "r", encoding="utf-8") as f:
     captcha_template = f.read()
 
 
