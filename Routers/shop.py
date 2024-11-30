@@ -1,6 +1,7 @@
 import logging
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from Models.commodity import Commodity, CreateCommodity
@@ -8,8 +9,9 @@ from Models.database import CommodityDb
 from Models.response import ExceptionResponse, StandardResponse
 from Models.user import Permission, User
 from Services.Database.database import get_db
-from Services.Limiter.limiter import limiter
+from Services.Limiter.slow_limiter import freq_limiter
 from Services.Security.user import get_current_user, verify_user
+from Services.Storage.manager import load_file_async, remove_file, save_file_async
 
 shop_router = APIRouter(prefix="/shop")
 logger = logging.getLogger("shop")
@@ -17,33 +19,47 @@ logger = logging.getLogger("shop")
 
 @shop_router.post("/add", response_model=StandardResponse)
 async def add_commodity(
-    body: CreateCommodity,
+    body: CreateCommodity = Form(),
+    img: UploadFile | None = None,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse:
     assert verify_user(user, Permission.Admin)
 
-    db.add(CommodityDb(**body.to_commodity().model_dump()))
+    fid = None
+    cid = uuid4().hex
+    if img is not None:
+        contents = await img.read()
+        fid = await save_file_async(contents, cid)
+
+    db.add(CommodityDb(**body.to_commodity(cid, fid).model_dump()))
     db.commit()
 
     return StandardResponse(status_code=201, message="Commodity added")
 
 
 @shop_router.get("/all", response_model=StandardResponse)
-@limiter.limit("10/minute")
+@freq_limiter.limit("10/minute")
 async def all_commodity(
     request: Request, page: int = 1, db: Session = Depends(get_db)
 ) -> StandardResponse[list[Commodity]]:
+    if page < 1:
+        page = 1
+
     commodities = [
-        Commodity(
-            cid=item.cid, name=item.name, price=item.price, description=item.description
-        )
+        Commodity(**item.__dict__)
         for item in db.query(CommodityDb).offset((page - 1) * 50).limit(50).all()
     ]
 
     return StandardResponse[list[Commodity]](
         status_code=200, message="Commodities", data=commodities
     )
+
+
+@shop_router.get("/image", response_model=StandardResponse)
+async def get_commodity_image(cid: str):
+    if (data := await load_file_async(cid)) is not None:
+        return Response(content=data[0], media_type=data[1])
 
 
 @shop_router.put("/update", response_model=StandardResponse)
@@ -76,6 +92,7 @@ async def remove_commodity(
     ) is not None:
         db.delete(record)
         db.commit()
+        remove_file(cid)
         return StandardResponse(status_code=200, message="Commodity deleted")
     else:
         raise ExceptionResponse.NOT_FOUND

@@ -6,13 +6,7 @@ from Services.Database.database import Base
 
 class UserDb(Base):
     __tablename__ = "user"
-    uid: Mapped[str] = mapped_column(
-        VARCHAR(32),
-        primary_key=True,
-        nullable=False,
-        unique=True,
-        index=True,
-    )
+    uid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
     username: Mapped[str] = mapped_column(TEXT, nullable=False, unique=True)
     email: Mapped[str] = mapped_column(TEXT, nullable=False, unique=True)
     password: Mapped[str] = mapped_column(TEXT, nullable=False)
@@ -21,13 +15,8 @@ class UserDb(Base):
 
 class CommodityDb(Base):
     __tablename__ = "commodity"
-    cid: Mapped[str] = mapped_column(
-        VARCHAR(32),
-        primary_key=True,
-        nullable=False,
-        unique=True,
-        index=True,
-    )
+    cid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
     name: Mapped[str] = mapped_column(TEXT, nullable=False)
     price: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
-    description: Mapped[str] = mapped_column(TEXT)
+    description: Mapped[str] = mapped_column(TEXT, nullable=True)
+    image: Mapped[str] = mapped_column(VARCHAR(32), nullable=True)

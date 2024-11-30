@@ -11,9 +11,9 @@ from Models.database import UserDb
 from Models.response import ExceptionResponse, StandardResponse
 from Models.user import Permission, Token, UpdateUser, User
 from Services.Cache.cache import cache
-from Services.Mail.mail import Purpose, send_captcha
 from Services.Database.database import get_db
-from Services.Limiter.limiter import limiter
+from Services.Limiter.slow_limiter import freq_limiter
+from Services.Mail.mail import Purpose, send_captcha
 from Services.Security.user import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     create_access_token,
@@ -26,7 +26,7 @@ logger = logging.getLogger("user")
 
 
 @user_router.post("/captcha")
-@limiter.limit("1/minute")
+@freq_limiter.limit("1/minute")
 async def user_req_captcha(request: Request, email: str = Form()) -> StandardResponse:
     ip = request.client.host if request.client else "Unknown"
     captcha = send_captcha(email, Purpose.REGISTER, ip)
@@ -35,7 +35,7 @@ async def user_req_captcha(request: Request, email: str = Form()) -> StandardRes
 
 
 @user_router.post("/register", response_model=StandardResponse)
-@limiter.limit("5/minute")
+@freq_limiter.limit("5/minute")
 async def user_reg(
     request: Request,
     email: str = Form(),
@@ -54,7 +54,7 @@ async def user_reg(
 
     if (cached_captcha := await cache.get(email)) is None or cached_captcha != captcha:
         raise ExceptionResponse.CAPTCHA_FAILED
-    
+
     await cache.delete(email)
 
     db.add(
@@ -71,7 +71,7 @@ async def user_reg(
 
 
 @user_router.post("/login", response_model=StandardResponse)
-@limiter.limit("5/minute")
+@freq_limiter.limit("5/minute")
 async def user_login(
     request: Request,
     body: OAuth2PasswordRequestForm = Depends(),

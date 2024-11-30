@@ -183,5 +183,7 @@ pyrightconfig.json
 .__latest.lock
 
 # Logs
-
 Logs/*
+
+# Local Storage
+Services/Storage/data/*
