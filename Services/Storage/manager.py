@@ -5,7 +5,6 @@ from uuid import uuid4
 import aiofiles
 from fastapi import HTTPException
 import filetype
-from filetype.types.image import Jpeg, Png
 
 
 async def save_file_async(file: bytes, fid: str | None = None) -> str:
