@@ -22,7 +22,7 @@ async def addToCart(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 )->StandardResponse:
-    db.add(CartDb(cartRecord(product.id,user.uid)))
+    db.add(CartDb(product.id,user.uid))
     db.commit()
     return StandardResponse(status_code=201,message="added to cart")
 

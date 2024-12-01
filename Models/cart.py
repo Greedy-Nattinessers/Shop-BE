@@ -7,14 +7,14 @@ class cartProduct(BaseModel):
 
 class cartRecord(BaseModel):
     uuid: str
-    cuid: str
+    cid: str
     uid: str
 
-    def __init__(self,  Cuid : str, Userid : str):
+    def __init__(self,  cid : str, uid : str):
         super().__init__(
             uuid = uuid4().hex,
-            cuid = Cuid,
-            uid = Userid
+            cid = cid,
+            uid = uid
         )
     
 

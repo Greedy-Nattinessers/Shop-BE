@@ -34,5 +34,5 @@ class CommodityDb(Base):
 
 class CartDb(Base):
     __tablename__ = "cart"
-    userUid:Mapped[str] = mapped_column(TEXT, primary_key=True)
-    productId: Mapped[str] = mapped_column(TEXT,primary_key=True)
+    uid:Mapped[str] = mapped_column(TEXT, primary_key=True)
+    pid: Mapped[str] = mapped_column(TEXT,primary_key=True)
