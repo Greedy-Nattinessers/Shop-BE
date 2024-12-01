@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from Models.database import UserDb
+from Models.database import AddressDb, UserDb
 from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
-from Models.user import Permission, Token, UpdateUser, User
+from Models.user import AddressRequest, Permission, Token, UpdateUser, User, UserAddress
 from Services.Cache.cache import cache
 from Services.Database.database import get_db
 from Services.Limiter.slow_limiter import freq_limiter
@@ -123,3 +123,87 @@ async def user_update(
         return StandardResponse[None](status_code=200, message="User updated")
     else:
         raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@user_router.get("/profile", response_model=BaseResponse)
+async def user_profile(
+    user: User = Depends(get_current_user),
+) -> StandardResponse[User]:
+    return StandardResponse[User](data=user)
+
+
+@user_router.post("/add_address", response_model=BaseResponse)
+async def add_address(
+    body: AddressRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
+    if body.is_default:
+        db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
+            {"is_default": False}
+        )
+    db.add(AddressDb(**body.to_address(user.uid).model_dump()))
+    db.commit()
+    return StandardResponse[None](status_code=201, message="Address added")
+
+
+@user_router.put("/update_address", response_model=BaseResponse)
+async def update_address(
+    aid: str,
+    body: AddressRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
+    if (
+        record := db.query(AddressDb).filter(
+            AddressDb.uid == user.uid and AddressDb.aid == aid
+        )
+    ) is not None:
+        if body.is_default:
+            db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
+                {"is_default": False}
+            )
+        record.update(body.model_dump())  # type: ignore
+        db.commit()
+        return StandardResponse[None](status_code=200, message="Address updated")
+    raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@user_router.delete("/delete_address", response_model=BaseResponse)
+async def delete_address(
+    aid: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
+    if (
+        record := db.query(AddressDb)
+        .filter(AddressDb.uid != user.uid and AddressDb.aid == aid)
+        .first()
+    ) is not None:
+        db.delete(record)
+        db.commit()
+        return StandardResponse[None](status_code=200, message="Address deleted")
+    raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@user_router.get("/address", response_model=BaseResponse)
+async def get_address(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> StandardResponse[list[UserAddress]]:
+    record = db.query(AddressDb).filter(AddressDb.uid == user.uid).all()
+
+    return StandardResponse[list[UserAddress]](
+        status_code=200,
+        message=None,
+        data=[
+            UserAddress(
+                uid=item.uid,
+                aid=item.aid,
+                is_default=item.is_default,
+                address=item.address,
+                phone=item.phone,
+                name=item.name,
+            )
+            for item in record
+        ],
+    )
