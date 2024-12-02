@@ -32,13 +32,14 @@ async def user_req_captcha(
     request: Request, email: str = Form()
 ) -> StandardResponse[None]:
     try:
-        validate_email(email, check_deliverability=False)
+        emailinfo = validate_email(email, check_deliverability=False)
+        normalized_email = emailinfo.normalized
     except EmailNotValidError:
         raise ExceptionResponseEnum.INVALID_OPERATION()
 
     ip = request.client.host if request.client else "Unknown"
-    captcha = send_captcha(email, Purpose.REGISTER, ip)
-    await cache.set(email, captcha, ttl=300)
+    captcha = send_captcha(normalized_email, Purpose.REGISTER, ip)
+    await cache.set(normalized_email, captcha, ttl=300)
     return StandardResponse[None](status_code=200, message="Captcha sent")
 
 
