@@ -26,11 +26,9 @@ user_router = APIRouter(prefix="/user")
 logger = logging.getLogger("user")
 
 
-@user_router.post("/captcha", response_model=BaseResponse)
+@user_router.get("/captcha", response_model=BaseResponse)
 @freq_limiter.limit("1/minute")
-async def user_req_captcha(
-    request: Request, email: str = Form()
-) -> StandardResponse[None]:
+async def user_req_captcha(request: Request, email: str) -> StandardResponse[None]:
     try:
         emailinfo = validate_email(email, check_deliverability=False)
         normalized_email = emailinfo.normalized
