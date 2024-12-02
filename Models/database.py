@@ -1,4 +1,3 @@
-from annotated_types import T
 from sqlalchemy import DECIMAL, INT, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 

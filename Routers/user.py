@@ -3,6 +3,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 import bcrypt
+from email_validator import EmailNotValidError, validate_email
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -30,6 +31,11 @@ logger = logging.getLogger("user")
 async def user_req_captcha(
     request: Request, email: str = Form()
 ) -> StandardResponse[None]:
+    try:
+        validate_email(email, check_deliverability=False)
+    except EmailNotValidError:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
+
     ip = request.client.host if request.client else "Unknown"
     captcha = send_captcha(email, Purpose.REGISTER, ip)
     await cache.set(email, captcha, ttl=300)
@@ -89,7 +95,7 @@ async def user_login(
         raise ExceptionResponseEnum.AUTH_FAILED()
 
     token = create_access_token(
-        data={"sub": user.email, "id": user.uid},
+        data={"sub": user.username, "id": user.uid},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
