@@ -28,7 +28,9 @@ logger = logging.getLogger("user")
 
 @user_router.get("/captcha", response_model=BaseResponse)
 @freq_limiter.limit("1/minute")
-async def user_req_captcha(request: Request, email: str) -> StandardResponse[None]:
+async def user_req_captcha(
+    request: Request, email: str, purpose: Purpose
+) -> StandardResponse[None]:
     try:
         emailinfo = validate_email(email, check_deliverability=False)
         normalized_email = emailinfo.normalized
@@ -36,8 +38,8 @@ async def user_req_captcha(request: Request, email: str) -> StandardResponse[Non
         raise ExceptionResponseEnum.INVALID_OPERATION()
 
     ip = request.client.host if request.client else "Unknown"
-    captcha = send_captcha(normalized_email, Purpose.REGISTER, ip)
-    await cache.set(normalized_email, captcha, ttl=300)
+    captcha = send_captcha(normalized_email, purpose, ip)
+    await cache.set(key=f"{purpose.value}-{normalized_email}", value=captcha, ttl=300)
     return StandardResponse[None](status_code=200, message="Captcha sent")
 
 
@@ -51,23 +53,33 @@ async def user_reg(
     captcha: str = Form(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
+    try:
+        emailinfo = validate_email(email, check_deliverability=False)
+        normalized_email = emailinfo.normalized
+    except EmailNotValidError:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
+
     if (
         db.query(UserDb)
-        .filter(UserDb.email == email or UserDb.username == username)
+        .filter(UserDb.email == normalized_email or UserDb.username == username)
         .first()
         is not None
     ):
         raise ExceptionResponseEnum.RESOURCE_CONFILCT()
 
-    if (cached_captcha := await cache.get(email)) is None or cached_captcha != captcha:
+    if (
+        cached_captcha := await cache.get(
+            f"{Purpose.REGISTER.value}-{normalized_email}"
+        )
+    ) is None or cached_captcha != captcha:
         raise ExceptionResponseEnum.CAPTCHA_FAILED()
 
-    await cache.delete(email)
+    await cache.delete(f"{Purpose.REGISTER.value}-{normalized_email}")
 
     db.add(
         UserDb(
             uid=uuid4().hex,
-            email=email,
+            email=normalized_email,
             username=username,
             password=bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()),
             permission=Permission.User(),
@@ -99,6 +111,38 @@ async def user_login(
     )
 
     return StandardResponse[Token](data=Token(access_token=token, token_type="bearer"))
+
+
+@user_router.post("/recover_password", response_model=BaseResponse)
+@freq_limiter.limit("5/minute")
+async def user_recover(
+    request: Request,
+    email: str = Form(),
+    username: str = Form(),
+    password: str = Form(),
+    captcha: str = Form(),
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
+    if (
+        record := db.query(UserDb)
+        .filter(UserDb.username == username and UserDb.email == email)
+        .first()
+    ) is None:
+        raise ExceptionResponseEnum.NOT_FOUND()
+
+    if (
+        cached_captcha := await cache.get(f"{Purpose.RECOVER_PASSWORD.value}-{email}")
+    ) is None or cached_captcha != captcha:
+        raise ExceptionResponseEnum.CAPTCHA_FAILED()
+
+    await cache.delete(f"{Purpose.RECOVER_PASSWORD.value}-{email}")
+
+    record.password = bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()).decode(
+        "utf-8"
+    )
+
+    db.commit()
+    return StandardResponse[None](status_code=200, message="Password updated")
 
 
 @user_router.put("/profile", response_model=BaseResponse)

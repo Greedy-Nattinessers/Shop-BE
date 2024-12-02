@@ -8,8 +8,13 @@ from Services.Config.config import config
 
 
 class Purpose(Enum):
-    REGISTER = "账户注册"
-    RESET_PASSWORD = "密码找回"
+    REGISTER = 0
+    RECOVER_PASSWORD = 1
+
+    def __str__(self):
+        str_dict = {"REGISTER": "账户注册", "RESET_PASSWORD": "密码找回"}
+
+        return str_dict[self.name]
 
 
 secure_rng = secrets.SystemRandom()
@@ -33,6 +38,6 @@ def _send_email(addr: str, subject: str, body: str):
 
 def send_captcha(addr: str, purpose: Purpose, ip: str) -> str:
     captcha = str(secure_rng.randrange(10000, 99999))
-    body = captcha_template.format(captcha=captcha, purpose=purpose.value, ip=ip)
-    _send_email(addr, purpose.value, body)
+    body = captcha_template.format(captcha=captcha, purpose=purpose.__str__(), ip=ip)
+    _send_email(addr, purpose.__str__(), body)
     return captcha
