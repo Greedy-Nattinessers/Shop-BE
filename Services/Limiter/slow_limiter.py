@@ -8,5 +8,5 @@ from Models.response import HTTPException
 freq_limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 
-def RateLimitExceeded_handler(request: Request, exc: RateLimitExceeded):
+async def RateLimitExceeded_handler(request: Request, exc: RateLimitExceeded):
     raise HTTPException(429, f"Rate limit exceeded: {exc.detail}")

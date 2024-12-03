@@ -19,7 +19,7 @@ class CreateCommodity(BaseModel):
     def validate_to_json(cls, value):
         if isinstance(value, str):
             return cls.model_validate_json(value)
-        return value
+        return None
 
     def to_commodity(self, cid: str, fid: str | None = None) -> Commodity:
         return Commodity(
