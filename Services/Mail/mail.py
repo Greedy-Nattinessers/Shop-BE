@@ -8,11 +8,11 @@ from Services.Config.config import config
 
 
 class Purpose(Enum):
-    REGISTER = 0
-    RECOVER_PASSWORD = 1
+    REGISTER = "0"
+    RECOVER_PASSWORD = "1"
 
     def __str__(self):
-        str_dict = {"REGISTER": "账户注册", "RESET_PASSWORD": "密码找回"}
+        str_dict = {"REGISTER": "账户注册", "RECOVER_PASSWORD": "密码重置"}
 
         return str_dict[self.name]
 
