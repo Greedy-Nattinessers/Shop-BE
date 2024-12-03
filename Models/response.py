@@ -1,12 +1,61 @@
+from enum import Enum
+
 from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 
-class ExceptionResponse:
+class BaseResponse[T](BaseModel):
+    """
+    Base Response Class
+    ~~~~~~~~~~~~~~~~~~~~~~
+    This class is the base response of the API.
+    """
+
+    status_code: int
+    message: str | None = None
+    data: T | None = None
+
+
+class StandardResponse[T](JSONResponse):
+    """
+    Standard Response Class
+    ~~~~~~~~~~~~~~~~~~~~~~
+    This class is the default web response of the API.
+    """
+
+    def __init__(
+        self,
+        status_code: int = 200,
+        message: str | None = None,
+        data: T | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(
+            content=BaseResponse[T](
+                status_code=status_code, message=message, data=data
+            ).model_dump(),
+            status_code=status_code,
+            headers=headers,
+        )
+
+
+class ExceptionResponseEnum(Enum):
+    """
+    Exception Response Enum
+    ~~~~~~~~~~~~~~~~~~~~~~
+    This enum is the collection of static exception responses for the API.
+    """
+
     AUTH_FAILED = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    CAPTCHA_FAILED = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Captcha validation failed",
     )
 
     PERMISSION_DENIED = HTTPException(
@@ -19,19 +68,21 @@ class ExceptionResponse:
         detail="Not found",
     )
 
+    INVALID_OPERATION = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid operation",
+    )
 
-class StandardResponse[T](BaseModel):
-    """
-    Standard Response Model
-    ~~~~~~~~~~~~~~~~~~~~~
-    This model is the default web response format of the API.
-    """
+    RESOURCE_CONFILCT = HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Resource conflict",
+    )
 
-    status_code: int
-    message: str | None
-    data: T | None
+    def __call__(self) -> HTTPException:
+        return self.value
 
-    def __init__(
-        self, status_code: int = 200, message: str | None = None, data: T | None = None
-    ):
-        super().__init__(status_code=status_code, message=message, data=data)
+
+async def http_exception_handler(request, exc: HTTPException) -> StandardResponse[None]:
+    return StandardResponse[None](
+        status_code=exc.status_code, message=exc.detail, data=None
+    )

@@ -16,6 +16,9 @@ sqlalchemy = "^2.0.36"
 slowapi = "^0.1.9"
 mysqlclient = "^2.2.6"
 bcrypt = "^4.2.1"
+aiocache = "^0.12.3"
+aiofiles = "^24.1.0"
+filetype = "^1.2.0"
 
 
 [build-system]

@@ -23,12 +23,27 @@ class EnvConfig:
     db_name: str
     db_user: str
     db_password: str
+    email_host: str
+    email_port: str
+    email_addr: str
+    email_pwd: str
+
     log_level: str = "INFO"
 
     def __init__(self) -> None:
         load_dotenv()
 
-        required = ["secret_key", "db_url", "db_name", "db_user", "db_password"]
+        required = [
+            "secret_key",
+            "db_url",
+            "db_name",
+            "db_user",
+            "db_password",
+            "email_host",
+            "email_port",
+            "email_addr",
+            "email_pwd",
+        ]
         normal = [("log_level", "INFO")]
         for req in required:
             if (v := os.getenv(req.upper())) is None or v == "":
