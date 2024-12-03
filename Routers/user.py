@@ -113,19 +113,18 @@ async def user_login(
     return StandardResponse[Token](data=Token(access_token=token, token_type="bearer"))
 
 
-@user_router.post("/recover_password", response_model=BaseResponse)
+@user_router.post("/recover", response_model=BaseResponse)
 @freq_limiter.limit("5/minute")
 async def user_recover(
     request: Request,
     email: str = Form(),
-    username: str = Form(),
     password: str = Form(),
     captcha: str = Form(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (
         record := db.query(UserDb)
-        .filter(UserDb.username == username and UserDb.email == email)
+        .filter(UserDb.email == email)
         .first()
     ) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
