@@ -1,6 +1,7 @@
 from sqlalchemy import DECIMAL, INT, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
+from Models import commodity
 from Services.Database.database import Base
 
 
@@ -30,3 +31,10 @@ class AddressDb(Base):
     phone: Mapped[str] = mapped_column(TEXT, nullable=False)
     name: Mapped[str] = mapped_column(TEXT, nullable=False)
     is_default: Mapped[bool] = mapped_column(INT, nullable=False)
+
+
+class CartDb(Base):
+    __tablename__ = "cart"
+    uid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    cid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    count: Mapped[int] = mapped_column(INT, nullable=False)

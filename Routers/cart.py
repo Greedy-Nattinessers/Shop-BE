@@ -1,63 +1,58 @@
 import logging
 
-from typing import List
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
-from Models.cart import cartProduct,cartRecord
-from Models.commodity import Commodity
-from Models.database import CartDb,CommodityDb
-from Models.response import ExceptionResponse, StandardResponse
-from Models.user import Permission, User
+from Models.database import CartDb, CommodityDb
+from Models.response import ExceptionResponseEnum, StandardResponse
+from Models.user import User
 from Services.Database.database import get_db
-from Services.Limiter.limiter import limiter
-from Services.Security.user import get_current_user, verify_user
+from Services.Limiter.slow_limiter import freq_limiter
+from Services.Security.user import get_current_user
 
 cart_router = APIRouter(prefix="/cart")
 logger = logging.getLogger("cart")
 
+
 @cart_router.post("/add")
+@freq_limiter.limit("10/minute")
 async def addToCart(
-    product: cartProduct,
+    request: Request,
+    cid: str,
     user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-)->StandardResponse:
-    db.add(CartDb(product.id,user.uid))
-    db.commit()
-    return StandardResponse(status_code=201,message="added to cart")
-
-
-@cart_router.post("/delete")
-async def deleteFromCart(
-     product: cartProduct,
-     user:User = Depends(get_current_user),
-     db: Session = Depends(get_db)
-
-)->StandardResponse:
-     
-    if ( 
-      record := db.query(CartDb).filter(CartDb.productId == product.id and CartDb.userUid == user.uid).first()
+    db: Session = Depends(get_db),
+) -> StandardResponse:
+    if db.query(CommodityDb).filter(CommodityDb.cid == cid).first() is None:
+        raise ExceptionResponseEnum.NOT_FOUND()
+    if (
+        record := db.query(CartDb)
+        .filter(CartDb.cid == cid and CartDb.uid == user.uid)
+        .first()
     ) is not None:
-        db.delete(record)
-        db.commit()
-        return StandardResponse(status_code=20, message="good delete")
+        record.count += 1
     else:
-        raise ExceptionResponse.NOT_FOUND
+        db.add(CartDb(cid=cid, uid=user.uid, count=1))
+    db.commit()
+    return StandardResponse[None](status_code=200, message="Commodity added")
 
-#todo
-@cart_router.get("/query")
-async def getCartList(
-    page: int,
+
+@cart_router.delete("/remove")
+async def deleteFromCart(
+    cid: str,
+    is_all: bool = False,
     user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-)->StandardResponse[List[Commodity]]:
-    commodities = [
-        Commodity(
-            cid=item.cid, name=item.name, price=item.price, description=item.description
-        )
-        for item in db.query(CartDb).filter(CartDb.userUid == user.uid).\
-            join(Commodity, CartDb.productId == Commodity.cid).\
-            offset((page-1) * 10).limit(10)
-    ]
-    return StandardResponse[List[Commodity]](status_code=200,message='page'+ str(page),data =commodities )
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
 
+    if (
+        record := db.query(CartDb)
+        .filter(CartDb.cid == cid and CartDb.uid == user.uid)
+        .first()
+    ) is None:
+        raise ExceptionResponseEnum.NOT_FOUND()
+    if is_all or record.count <= 1:
+        db.query(CartDb).filter(CartDb.cid == cid and CartDb.uid == user.uid).delete()
+    else:
+        record.count -= 1
+    db.commit()
+    return StandardResponse[None](status_code=200, message="Commodity deleted")
