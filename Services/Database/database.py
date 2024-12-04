@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from Services.Config.config import config
 
@@ -10,6 +9,8 @@ engine = create_engine(
     f"mysql://{auth}{config.db_url}/{config.db_name}",
     connect_args={"connect_timeout": 10},
 )
+
+
 SessionLocal = sessionmaker(autocommit=False, bind=engine, expire_on_commit=True)
 Base = declarative_base()
 

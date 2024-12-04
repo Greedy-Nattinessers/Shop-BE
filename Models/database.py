@@ -1,14 +1,15 @@
 from sqlalchemy import DECIMAL, INT, JSON, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
-from Services.Database.database import Base
+from Services.Config.config import config
+from Services.Database.database import Base, engine
 
 
 class UserDb(Base):
     __tablename__ = "user"
     uid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
-    username: Mapped[str] = mapped_column(TEXT, nullable=False, unique=True)
-    email: Mapped[str] = mapped_column(TEXT, nullable=False, unique=True)
+    username: Mapped[str] = mapped_column(TEXT, nullable=False)
+    email: Mapped[str] = mapped_column(TEXT, nullable=False)
     password: Mapped[str] = mapped_column(TEXT, nullable=False)
     permission: Mapped[int] = mapped_column(INT, nullable=False)
 
@@ -38,3 +39,8 @@ class CartDb(Base):
     uid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
     cid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
     count: Mapped[int] = mapped_column(INT, nullable=False)
+
+
+if config.is_test == "1":
+    Base.metadata.drop_all(engine)
+Base.metadata.create_all(engine, checkfirst=True)

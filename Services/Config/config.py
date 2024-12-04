@@ -28,6 +28,8 @@ class EnvConfig:
     email_addr: str
     email_pwd: str
 
+    is_test: str
+
     log_level: str = "INFO"
 
     def __init__(self) -> None:
@@ -44,7 +46,7 @@ class EnvConfig:
             "email_addr",
             "email_pwd",
         ]
-        normal = [("log_level", "INFO")]
+        normal = [("log_level", "INFO"), ("is_test", "0")]
         for req in required:
             if (v := os.getenv(req.upper())) is None or v == "":
                 raise InvalidConfigError(
