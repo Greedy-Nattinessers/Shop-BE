@@ -1,12 +1,18 @@
+from uuid import UUID
+
 from pydantic import BaseModel, model_validator
 
 
-class Commodity(BaseModel):
+class BaseCommodity(BaseModel):
     cid: str
     name: str
     price: float
+    album: str | None
+
+
+class Commodity(BaseCommodity):
     description: str
-    image: str | None
+    images: list[str]
 
 
 class CreateCommodity(BaseModel):
@@ -19,13 +25,18 @@ class CreateCommodity(BaseModel):
     def validate_to_json(cls, value):
         if isinstance(value, str):
             return cls.model_validate_json(value)
-        return None
+        return value
 
-    def to_commodity(self, cid: str, fid: str | None = None) -> Commodity:
-        return Commodity(
-            cid=cid,
-            name=self.name,
-            price=self.price,
-            description=self.description,
-            image=fid,
-        )
+
+class UpdateCommodity(BaseModel):
+    cid: str
+    name: str | None = None
+    price: float | None = None
+    description: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_to_json(cls, value):
+        if isinstance(value, str):
+            return cls.model_validate_json(value)
+        return None

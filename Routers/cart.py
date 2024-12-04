@@ -1,4 +1,5 @@
 import logging
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ logger = logging.getLogger("cart")
 @freq_limiter.limit("10/minute")
 async def addToCart(
     request: Request,
-    cid: str,
+    cid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse:
@@ -26,19 +27,19 @@ async def addToCart(
         raise ExceptionResponseEnum.NOT_FOUND()
     if (
         record := db.query(CartDb)
-        .filter(CartDb.cid == cid and CartDb.uid == user.uid)
+        .filter(CartDb.cid == cid.hex and CartDb.uid == user.uid)
         .first()
     ) is not None:
         record.count += 1
     else:
-        db.add(CartDb(cid=cid, uid=user.uid, count=1))
+        db.add(CartDb(cid=cid.hex, uid=user.uid, count=1))
     db.commit()
     return StandardResponse[None](status_code=200, message="Commodity added")
 
 
 @cart_router.delete("/remove")
 async def deleteFromCart(
-    cid: str,
+    cid: UUID,
     is_all: bool = False,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -46,12 +47,14 @@ async def deleteFromCart(
 
     if (
         record := db.query(CartDb)
-        .filter(CartDb.cid == cid and CartDb.uid == user.uid)
+        .filter(CartDb.cid == cid.hex and CartDb.uid == user.uid)
         .first()
     ) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
     if is_all or record.count <= 1:
-        db.query(CartDb).filter(CartDb.cid == cid and CartDb.uid == user.uid).delete()
+        db.query(CartDb).filter(
+            CartDb.cid == cid.hex and CartDb.uid == user.uid
+        ).delete()
     else:
         record.count -= 1
     db.commit()

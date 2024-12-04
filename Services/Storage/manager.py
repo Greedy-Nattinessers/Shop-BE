@@ -1,29 +1,32 @@
 import os
-from uuid import uuid4
+from pathlib import Path
+from uuid import UUID, uuid4
 
 import aiofiles
 import filetype
 from fastapi import HTTPException
 
+data_path = Path(os.path.join(os.getcwd(), "Services/Storage/data"))
 
-async def save_file_async(file: bytes, fid: str | None = None) -> str:
-    if fid is None:
-        fid = uuid4().hex
+
+async def save_file_async(file: bytes) -> UUID:
+    fid = uuid4()
 
     if filetype.guess_extension(file) not in ["jpg", "png"]:
         raise HTTPException(status_code=400, detail="Invalid image type")
 
-    async with aiofiles.open(f"Services/Storage/data/{fid}", "wb") as f:
+    async with aiofiles.open(data_path.joinpath(fid.hex), "wb") as f:
         await f.write(file)
 
     return fid
 
 
 async def load_file_async(fid: str) -> tuple[bytes, str] | None:
-    if os.path.exists(fid):
+    file_path = data_path.joinpath(fid)
+    if not file_path.exists() or not file_path.is_relative_to(data_path):
         return None
 
-    async with aiofiles.open(f"Services/Storage/data/{fid}", "rb") as f:
+    async with aiofiles.open(file_path, "rb") as f:
         data = await f.read()
         mime = filetype.guess_mime(data)
         if isinstance(mime, str):
@@ -32,6 +35,9 @@ async def load_file_async(fid: str) -> tuple[bytes, str] | None:
     return None
 
 
-def remove_file(fid: str):
-    if os.path.exists(f"Services/Storage/data/{fid}"):
-        os.remove(f"Services/Storage/data/{fid}")
+def remove_file(fid: UUID) -> bool:
+    file_path = data_path.joinpath(fid.hex)
+    if file_path.exists() and file_path.is_relative_to(data_path):
+        file_path.unlink()
+        return True
+    return False

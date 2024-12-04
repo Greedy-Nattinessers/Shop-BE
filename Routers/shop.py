@@ -1,10 +1,12 @@
+import asyncio
 import logging
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Form, Request, Response, UploadFile
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
-from Models.commodity import Commodity, CreateCommodity
+from Models.commodity import BaseCommodity, CreateCommodity, UpdateCommodity
 from Models.database import CommodityDb
 from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
 from Models.user import Permission, User
@@ -18,53 +20,74 @@ logger = logging.getLogger("shop")
 
 
 @shop_router.post("/add", response_model=BaseResponse)
+@freq_limiter.limit("10/minute")
 async def add_commodity(
+    request: Request,
     body: CreateCommodity = Form(),
-    img: UploadFile | None = None,
+    images: list[UploadFile] = [],
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> StandardResponse[None]:
+) -> StandardResponse[str]:
     assert verify_user(user, Permission.Admin)
+    if images.__len__() > 5:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
+    
+    cid = uuid4()
 
-    fid = None
-    cid = uuid4().hex
-    if img is not None:
-        contents = await img.read()
-        fid = await save_file_async(contents, cid)
+    tasks = [save_file_async(await img.read()) for img in images]
+    imgs_id = await asyncio.gather(*tasks)
 
-    db.add(CommodityDb(**body.to_commodity(cid, fid).model_dump()))
+    db.add(
+        CommodityDb(
+            cid=cid.hex,
+            name=body.name,
+            price=body.price,
+            images=jsonable_encoder([img.hex for img in imgs_id]),
+            description=body.description,
+        )
+    )
     db.commit()
 
-    return StandardResponse[None](status_code=201, message="Commodity added")
+    return StandardResponse[str](
+        status_code=201, message="Commodity added", data=cid.hex
+    )
 
 
 @shop_router.get("/all", response_model=BaseResponse)
 @freq_limiter.limit("10/minute")
 async def all_commodity(
     request: Request, page: int = 1, db: Session = Depends(get_db)
-) -> StandardResponse[list[Commodity]]:
+) -> StandardResponse[list[BaseCommodity]]:
     if page < 1:
         raise ExceptionResponseEnum.INVALID_OPERATION()
 
     commodities = [
-        Commodity(**item.__dict__)
+        BaseCommodity(
+            cid=item.cid,
+            name=item.name,
+            price=item.price,
+            album=item.images[0] if item.images.__len__() > 0 else None,
+        )
         for item in db.query(CommodityDb).offset((page - 1) * 50).limit(50).all()
     ]
 
-    return StandardResponse[list[Commodity]](
+    return StandardResponse[list[BaseCommodity]](
         status_code=200, message=None, data=commodities
     )
 
 
 @shop_router.get("/image", response_class=Response)
-async def get_commodity_image(cid: str):
-    if (data := await load_file_async(cid)) is not None:
+async def get_commodity_image(cid: UUID) -> Response:
+    if (data := await load_file_async(cid.hex)) is not None:
         return Response(content=data[0], media_type=data[1])
+
+    raise ExceptionResponseEnum.NOT_FOUND()
 
 
 @shop_router.put("/update", response_model=BaseResponse)
 async def edit_commodity(
-    body: Commodity,
+    body: UpdateCommodity = Form(),
+    images: list[UploadFile] = [],
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
@@ -73,23 +96,29 @@ async def edit_commodity(
     if (
         record := db.query(CommodityDb).filter(CommodityDb.cid == body.cid).first()
     ) is not None:
-        record.name = body.name
-        record.price = body.price
-        record.description = body.description
+        if body.name is not None:
+            record.name = body.name
+        if body.price is not None:
+            record.price = body.price
+        if body.description is not None:
+            record.description = body.description
+        if images.__len__() > 0:
+            tasks = [save_file_async(await img.read()) for img in images]
+            imgs_id = await asyncio.gather(*tasks)
+            record.images = jsonable_encoder([img.hex for img in imgs_id])
         db.commit()
         return StandardResponse[None](status_code=200, message="Commodity updated")
-    else:
-        raise ExceptionResponseEnum.NOT_FOUND()
+    raise ExceptionResponseEnum.NOT_FOUND()
 
 
 @shop_router.delete("/delete", response_model=BaseResponse)
 async def remove_commodity(
-    cid: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    cid: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[None]:
     assert verify_user(user, Permission.Admin)
-    
+
     if (
-        record := db.query(CommodityDb).filter(CommodityDb.cid == cid).first()
+        record := db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first()
     ) is not None:
         db.delete(record)
         db.commit()

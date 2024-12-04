@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import bcrypt
 from email_validator import EmailNotValidError, validate_email
@@ -122,11 +122,7 @@ async def user_recover(
     captcha: str = Form(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
-    if (
-        record := db.query(UserDb)
-        .filter(UserDb.email == email)
-        .first()
-    ) is None:
+    if (record := db.query(UserDb).filter(UserDb.email == email).first()) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
 
     if (
@@ -197,14 +193,14 @@ async def add_address(
 
 @user_router.put("/update_address", response_model=BaseResponse)
 async def update_address(
-    aid: str,
+    aid: UUID,
     body: AddressRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (
         record := db.query(AddressDb).filter(
-            AddressDb.uid == user.uid and AddressDb.aid == aid
+            AddressDb.uid == user.uid and AddressDb.aid == aid.hex
         )
     ) is not None:
         if body.is_default:
@@ -219,13 +215,13 @@ async def update_address(
 
 @user_router.delete("/delete_address", response_model=BaseResponse)
 async def delete_address(
-    aid: str,
+    aid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (
         record := db.query(AddressDb)
-        .filter(AddressDb.uid != user.uid and AddressDb.aid == aid)
+        .filter(AddressDb.uid != user.uid and AddressDb.aid == aid.hex)
         .first()
     ) is not None:
         db.delete(record)

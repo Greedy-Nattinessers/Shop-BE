@@ -1,7 +1,6 @@
-from sqlalchemy import DECIMAL, INT, TEXT, VARCHAR
+from sqlalchemy import DECIMAL, INT, JSON, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
-from Models import commodity
 from Services.Database.database import Base
 
 
@@ -19,8 +18,8 @@ class CommodityDb(Base):
     cid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
     name: Mapped[str] = mapped_column(TEXT, nullable=False)
     price: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
-    description: Mapped[str] = mapped_column(TEXT, nullable=True)
-    image: Mapped[str] = mapped_column(VARCHAR(32), nullable=True)
+    description: Mapped[str | None] = mapped_column(TEXT, nullable=True)
+    images: Mapped[list[str]] = mapped_column(JSON, nullable=False)
 
 
 class AddressDb(Base):
@@ -35,6 +34,7 @@ class AddressDb(Base):
 
 class CartDb(Base):
     __tablename__ = "cart"
+    rid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
     uid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
     cid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
     count: Mapped[int] = mapped_column(INT, nullable=False)
