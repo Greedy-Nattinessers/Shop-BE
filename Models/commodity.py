@@ -11,7 +11,7 @@ class BaseCommodity(BaseModel):
 
 
 class Commodity(BaseCommodity):
-    description: str
+    description: str | None
     images: list[str]
 
 

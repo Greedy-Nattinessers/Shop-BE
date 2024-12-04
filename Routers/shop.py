@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Form, Request, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
-from Models.commodity import BaseCommodity, CreateCommodity, UpdateCommodity
+from Models.commodity import BaseCommodity, Commodity, CreateCommodity, UpdateCommodity
 from Models.database import CommodityDb
 from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
 from Models.user import Permission, User
@@ -31,7 +31,7 @@ async def add_commodity(
     assert verify_user(user, Permission.Admin)
     if images.__len__() > 5:
         raise ExceptionResponseEnum.INVALID_OPERATION()
-    
+
     cid = uuid4()
 
     tasks = [save_file_async(await img.read()) for img in images]
@@ -74,6 +74,29 @@ async def all_commodity(
     return StandardResponse[list[BaseCommodity]](
         status_code=200, message=None, data=commodities
     )
+
+
+@shop_router.get("/item/{commodity}", response_model=BaseResponse)
+@freq_limiter.limit("10/minute")
+async def get_commodity(
+    request: Request, commodity: UUID, db: Session = Depends(get_db)
+) -> StandardResponse[Commodity]:
+    if (
+        record := db.query(CommodityDb).filter(CommodityDb.cid == commodity.hex).first()
+    ) is not None:
+        return StandardResponse[Commodity](
+            status_code=200,
+            message=None,
+            data=Commodity(
+                cid=record.cid,
+                name=record.name,
+                price=record.price,
+                description=record.description,
+                images=record.images,
+                album=record.images[0] if record.images.__len__() > 0 else None,
+            ),
+        )
+    raise ExceptionResponseEnum.NOT_FOUND()
 
 
 @shop_router.get("/image", response_class=Response)
