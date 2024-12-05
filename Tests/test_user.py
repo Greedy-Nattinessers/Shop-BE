@@ -16,6 +16,7 @@ class TestUser:
     username: str
     password: str
     created_at: datetime.datetime
+    token: str | None
 
     def __init__(self, email: str):
         secure_rng = secrets.SystemRandom()
@@ -61,3 +62,14 @@ def test_user_register():
 
     assert register_response.status_code == 201
     assert register_response.json()["status_code"] == 201
+
+def test_user_login():
+    login_response = client.post(
+        "/user/login",
+        data={"username": test_user.username, "password": test_user.password},
+    )
+
+    assert login_response.status_code == 200
+    assert login_response.json()["data"]["access_token"] is not None
+    test_user.token = login_response.json()["data"]["access_token"]
+
