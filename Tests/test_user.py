@@ -21,7 +21,6 @@ secure_rng = secrets.SystemRandom()
 test_username = f"BotDuang-{secure_rng.randint(1000, 9999)}"
 test_password = secrets.token_urlsafe(16)
 access_token: str | None = None
-is_registered = False
 
 
 def test_user_register():
@@ -51,14 +50,13 @@ def test_user_register():
 
     assert register_response.status_code == 201
     BaseResponse[None].model_validate(register_response.json())
-    global is_registered
-    is_registered = True
 
 
 @pytest.mark.parametrize(
     "username, password, is_valid",
     [(test_username, test_password, True), ("foo", "bar", False)],
 )
+@pytest.mark.order(after="test_user_register")
 def test_user_login(username: str, password: str, is_valid: bool):
     login_response = client.post(
         "/user/login",
@@ -77,7 +75,7 @@ def test_user_login(username: str, password: str, is_valid: bool):
     access_token = data.data.access_token
 
 
-@pytest.mark.skipif(not is_registered, reason="User not registered")
+@pytest.mark.order(after="test_user_login")
 def test_user_profile():
     assert access_token is not None
 
@@ -91,7 +89,7 @@ def test_user_profile():
     assert data.data.username == test_username
 
 
-@pytest.mark.skipif(not is_registered, reason="User not registered")
+@pytest.mark.order(after="test_user_profile")
 def test_user_recover():
     assert test_config is not None
 
