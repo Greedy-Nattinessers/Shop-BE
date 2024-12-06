@@ -2,7 +2,7 @@ import asyncio
 import logging
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Form, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, Form, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,6 @@ from Models.database import CommodityDb
 from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
 from Models.user import Permission, User
 from Services.Database.database import get_db
-from Services.Limiter.slow_limiter import freq_limiter
 from Services.Security.user import get_current_user, verify_user
 from Services.Storage.manager import load_file_async, remove_file, save_file_async
 
@@ -20,9 +19,7 @@ logger = logging.getLogger("shop")
 
 
 @shop_router.post("/add", response_model=BaseResponse)
-@freq_limiter.limit("10/minute")
 async def add_commodity(
-    request: Request,
     body: CreateCommodity = Form(),
     images: list[UploadFile] = [],
     user: User = Depends(get_current_user),
@@ -54,9 +51,8 @@ async def add_commodity(
 
 
 @shop_router.get("/all", response_model=BaseResponse)
-@freq_limiter.limit("10/minute")
 async def all_commodity(
-    request: Request, page: int = 1, db: Session = Depends(get_db)
+    page: int = 1, db: Session = Depends(get_db)
 ) -> StandardResponse[list[BaseCommodity]]:
     if page < 1:
         raise ExceptionResponseEnum.INVALID_OPERATION()
@@ -77,9 +73,8 @@ async def all_commodity(
 
 
 @shop_router.get("/item/{commodity}", response_model=BaseResponse)
-@freq_limiter.limit("10/minute")
 async def get_commodity(
-    request: Request, commodity: UUID, db: Session = Depends(get_db)
+    commodity: UUID, db: Session = Depends(get_db)
 ) -> StandardResponse[Commodity]:
     if (
         record := db.query(CommodityDb).filter(CommodityDb.cid == commodity.hex).first()

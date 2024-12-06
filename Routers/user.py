@@ -44,9 +44,7 @@ async def user_req_captcha(
 
 
 @user_router.post("/register", response_model=BaseResponse)
-@freq_limiter.limit("5/minute")
 async def user_reg(
-    request: Request,
     email: str = Form(),
     username: str = Form(),
     password: str = Form(),
@@ -91,9 +89,7 @@ async def user_reg(
 
 
 @user_router.post("/login", response_model=BaseResponse)
-@freq_limiter.limit("5/minute")
 async def user_login(
-    request: Request,
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[Token]:
@@ -115,9 +111,7 @@ async def user_login(
 
 
 @user_router.post("/recover", response_model=BaseResponse)
-@freq_limiter.limit("5/minute")
 async def user_recover(
-    request: Request,
     email: str = Form(),
     password: str = Form(),
     captcha: str = Form(),
@@ -142,9 +136,7 @@ async def user_recover(
 
 
 @user_router.put("/profile", response_model=BaseResponse)
-@freq_limiter.limit("5/minute")
 async def user_update(
-    request: Request,
     body: UpdateUser,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

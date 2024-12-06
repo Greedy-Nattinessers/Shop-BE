@@ -1,14 +1,13 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from Models.database import CartDb, CommodityDb
 from Models.response import ExceptionResponseEnum, StandardResponse
 from Models.user import User
 from Services.Database.database import get_db
-from Services.Limiter.slow_limiter import freq_limiter
 from Services.Security.user import get_current_user
 
 cart_router = APIRouter(prefix="/cart")
@@ -16,9 +15,7 @@ logger = logging.getLogger("cart")
 
 
 @cart_router.post("/add")
-@freq_limiter.limit("10/minute")
 async def addToCart(
-    request: Request,
     cid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
