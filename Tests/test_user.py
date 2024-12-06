@@ -8,7 +8,6 @@ from main import app
 from Models.response import BaseResponse
 from Models.user import Token, User
 from Services.Config.config import InvalidConfigError, config
-from Services.Mail.mail import Purpose
 from Tests.Utils.user import get_captcha
 
 client = TestClient(app)
@@ -22,17 +21,18 @@ test_username = f"BotDuang-{secure_rng.randint(1000, 9999)}"
 test_password = secrets.token_urlsafe(16)
 access_token: str | None = None
 
-
+@pytest.mark.order(1)
 def test_user_register():
     assert test_config is not None
 
     captcha_response = client.get(
-        "/user/captcha",
-        params={"email": test_config.email.address, "purpose": Purpose.REGISTER.value},
+        "/user/captcha/register", params={"email": test_config.email.address}
     )
 
     assert captcha_response.status_code == 200
-    assert captcha_response.json()["status_code"] == 200
+    assert (
+        request_id := BaseResponse[str].model_validate(captcha_response.json()).data
+    ) is not None
     sleep(5)
 
     captcha = get_captcha(**test_config.email.model_dump())
@@ -46,6 +46,7 @@ def test_user_register():
             "email": test_config.email.address,
             "captcha": captcha,
         },
+        headers={"request-id": request_id},
     )
 
     assert register_response.status_code == 201
@@ -94,15 +95,13 @@ def test_user_recover():
     assert test_config is not None
 
     captcha_response = client.get(
-        "/user/captcha",
-        params={
-            "email": test_config.email.address,
-            "purpose": Purpose.RECOVER_PASSWORD.value,
-        },
+        "/user/captcha/recover", params={"email": test_config.email.address}
     )
 
     assert captcha_response.status_code == 200
-    assert captcha_response.json()["status_code"] == 200
+    assert (
+        request_id := BaseResponse[str].model_validate(captcha_response.json()).data
+    ) is not None
     sleep(5)
 
     captcha = get_captcha(**test_config.email.model_dump())
@@ -117,6 +116,7 @@ def test_user_recover():
             "password": test_password,
             "captcha": captcha,
         },
+        headers={"request-id": request_id},
     )
 
     assert recover_response.status_code == 200

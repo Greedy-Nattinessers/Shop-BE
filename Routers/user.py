@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import bcrypt
 from email_validator import EmailNotValidError, validate_email
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Header, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -26,11 +26,11 @@ user_router = APIRouter(prefix="/user")
 logger = logging.getLogger("user")
 
 
-@user_router.get("/captcha", response_model=BaseResponse)
+@user_router.get("/captcha/register", response_model=BaseResponse)
 @freq_limiter.limit("1/minute")
-async def user_req_captcha(
-    request: Request, email: str, purpose: Purpose
-) -> StandardResponse[None]:
+async def user_req_register_captcha(
+    request: Request, email: str
+) -> StandardResponse[str]:
     try:
         emailinfo = validate_email(email, check_deliverability=False)
         normalized_email = emailinfo.normalized
@@ -38,9 +38,32 @@ async def user_req_captcha(
         raise ExceptionResponseEnum.INVALID_OPERATION()
 
     ip = request.client.host if request.client else "Unknown"
-    captcha = send_captcha(normalized_email, purpose, ip)
-    await cache.set(key=f"{purpose.value}-{normalized_email}", value=captcha, ttl=300)
-    return StandardResponse[None](status_code=200, message="Captcha sent")
+    captcha = send_captcha(normalized_email, Purpose.REGISTER, ip)
+    request_id = uuid4().hex
+    await cache.set(key=request_id, value=captcha, ttl=300)
+    return StandardResponse[str](
+        status_code=200, message="Captcha sent", data=request_id
+    )
+
+
+@user_router.get("/captcha/recover", response_model=BaseResponse)
+@freq_limiter.limit("1/minute")
+async def user_req_recover_captcha(
+    request: Request, email: str
+) -> StandardResponse[str]:
+    try:
+        emailinfo = validate_email(email, check_deliverability=False)
+        normalized_email = emailinfo.normalized
+    except EmailNotValidError:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
+
+    ip = request.client.host if request.client else "Unknown"
+    captcha = send_captcha(normalized_email, Purpose.RECOVER_PASSWORD, ip)
+    request_id = uuid4().hex
+    await cache.set(key=request_id, value=captcha, ttl=300)
+    return StandardResponse[str](
+        status_code=200, message="Captcha sent", data=request_id
+    )
 
 
 @user_router.post("/register", response_model=BaseResponse)
@@ -49,6 +72,7 @@ async def user_reg(
     username: str = Form(),
     password: str = Form(),
     captcha: str = Form(),
+    request_id: str = Header(convert_underscores=True),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     try:
@@ -67,17 +91,15 @@ async def user_reg(
         raise ExceptionResponseEnum.RESOURCE_CONFILCT()
 
     if (
-        cached_captcha := await cache.get(
-            f"{Purpose.REGISTER.value}-{normalized_email}"
-        )
+        cached_captcha := await cache.get(request_id)
     ) is None or cached_captcha != captcha:
         raise ExceptionResponseEnum.CAPTCHA_FAILED()
 
-    await cache.delete(f"{Purpose.REGISTER.value}-{normalized_email}")
+    await cache.delete(request_id)
 
     db.add(
         UserDb(
-            uid=uuid4().hex,
+            uid=request_id,
             email=normalized_email,
             username=username,
             password=bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()),
@@ -115,17 +137,18 @@ async def user_recover(
     email: str = Form(),
     password: str = Form(),
     captcha: str = Form(),
+    request_id: str = Header(convert_underscores=True),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (record := db.query(UserDb).filter(UserDb.email == email).first()) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
 
     if (
-        cached_captcha := await cache.get(f"{Purpose.RECOVER_PASSWORD.value}-{email}")
+        cached_captcha := await cache.get(request_id)
     ) is None or cached_captcha != captcha:
         raise ExceptionResponseEnum.CAPTCHA_FAILED()
 
-    await cache.delete(f"{Purpose.RECOVER_PASSWORD.value}-{email}")
+    await cache.delete(request_id)
 
     record.password = bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()).decode(
         "utf-8"
