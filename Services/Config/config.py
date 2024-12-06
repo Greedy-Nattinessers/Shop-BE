@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -61,9 +62,22 @@ class Config(BaseModel):
         )
 
         if not config_path.exists():
-            raise FileNotFoundError("Config file not found.")
+            return cls.load_json()
 
         config = toml.load(config_path)
+        return cls.model_validate(config)
+
+    @classmethod
+    def load_json(cls):
+        config_path = Path(
+            os.path.join(os.getcwd()), "Services", "Config", "config.json"
+        )
+
+        if not config_path.exists():
+            raise FileNotFoundError("Config file not found.")
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
         return cls.model_validate(config)
 
 

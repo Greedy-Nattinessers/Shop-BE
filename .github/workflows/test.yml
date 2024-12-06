@@ -31,8 +31,9 @@ jobs:
 
       - name: Prepare config file
         run: |
-          echo ${{ secrets.configs }} > ./Services/Config/config.toml
-
+          echo $CONFIGS > ./Services/Config/config.json
+        env:
+          CONFIGS: ${{secrets.configs}}
       - name: Test with pytest
         run: |
           poetry run pytest
