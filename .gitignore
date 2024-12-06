@@ -185,5 +185,8 @@ pyrightconfig.json
 # Logs
 Logs/*
 
+# Conifg
+Services/Config/config.toml
+
 # Local Storage
 Services/Storage/data/*

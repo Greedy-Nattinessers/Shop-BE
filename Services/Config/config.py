@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 
-from dotenv import load_dotenv
+import toml
+from pydantic import BaseModel
 
 
 class InvalidConfigError(Exception):
@@ -17,48 +19,52 @@ class InvalidConfigError(Exception):
         return self.msg
 
 
-class EnvConfig:
+class SecurityConfig(BaseModel):
     secret_key: str
-    db_url: str
-    db_name: str
-    db_user: str
-    db_password: str
-    email_host: str
-    email_port: str
-    email_addr: str
-    email_pwd: str
-
-    is_test: str
-
-    log_level: str = "INFO"
-
-    def __init__(self) -> None:
-        load_dotenv()
-
-        required = [
-            "secret_key",
-            "db_url",
-            "db_name",
-            "db_user",
-            "db_password",
-            "email_host",
-            "email_port",
-            "email_addr",
-            "email_pwd",
-        ]
-        normal = [("log_level", "INFO"), ("is_test", "0")]
-        for req in required:
-            if (v := os.getenv(req.upper())) is None or v == "":
-                raise InvalidConfigError(
-                    f"Invalid or missing {req} environment variable."
-                )
-            setattr(self, req, v)
-        for norm in normal:
-            if (v := os.getenv(norm[0].upper())) is None or v == "":
-                setattr(self, norm[0], norm[1])
-            else:
-                setattr(self, norm[0], v)
-        super().__init__()
 
 
-config = EnvConfig()
+class DataBaseConfig(BaseModel):
+    host: str
+    port: int
+    name: str
+    username: str
+    password: str
+
+
+class EmailConfig(BaseModel):
+    host: str
+    port: int
+    address: str
+    password: str
+
+
+class LogConfig(BaseModel):
+    log_level: str
+
+
+class TestConfig(BaseModel):
+    is_test: bool
+    email: EmailConfig
+
+
+class Config(BaseModel):
+    security: SecurityConfig
+    database: DataBaseConfig
+    email: EmailConfig
+    log: LogConfig = LogConfig(log_level="INFO")
+    test: TestConfig | None = None
+
+    @classmethod
+    def load(cls):
+        config_path = Path(
+            os.path.join(os.getcwd()), "Services", "Config", "config.toml"
+        )
+
+        if not config_path.exists():
+            raise FileNotFoundError("Config file not found.")
+
+        config = toml.load(config_path)
+        return cls.model_validate(config)
+
+
+config = Config.load()

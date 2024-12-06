@@ -41,6 +41,6 @@ class CartDb(Base):
     count: Mapped[int] = mapped_column(INT, nullable=False)
 
 
-if config.is_test == "1":
+if config.test is not None and config.test.is_test:
     Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine, checkfirst=True)

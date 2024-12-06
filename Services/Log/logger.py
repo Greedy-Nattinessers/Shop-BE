@@ -7,7 +7,7 @@ from rich.logging import RichHandler
 from Services.Config.config import config
 
 logging.basicConfig(
-    level=config.log_level,
+    level=config.log.log_level,
     format="%(asctime)s - %(name)s [%(levelname)s] : %(message)s",
     datefmt="[%X]",
     handlers=[

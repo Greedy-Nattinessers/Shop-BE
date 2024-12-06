@@ -15,7 +15,7 @@ from Services.Log.logger import logging
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-SECRET_KEY = config.secret_key
+SECRET_KEY = config.security.secret_key
 log = logging.getLogger("security")
 
 

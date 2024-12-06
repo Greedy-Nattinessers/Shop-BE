@@ -1,34 +1,21 @@
-import datetime
 import imaplib
-import os
-import secrets
-
-from bs4 import BeautifulSoup
-from dotenv import load_dotenv
-from email_validator import EmailNotValidError, validate_email
 from email.parser import BytesParser
 
+from bs4 import BeautifulSoup
+
 from Services.Config.config import InvalidConfigError, config
-from Services.Mail.mail import Purpose
-
-
-def load_test_env(*args: str) -> dict[str, str]:
-    load_dotenv()
-    env = dict[str, str]()
-    for arg in args:
-        if (value := os.getenv(arg.upper())) is None:
-            raise InvalidConfigError(f"Required environment variable {arg} not set")
-        env[arg] = value
-    return env
 
 
 def get_captcha(
-    server_url: str, server_port: int, email: str, password: str
+    host: str, port: int, address: str, password: str
 ) -> str | None:
-    with imaplib.IMAP4_SSL(server_url, port=int(server_port)) as mail:
-        mail.login(email, password)
+    if config.test is None:
+        raise InvalidConfigError("Test environment not enabled")
+
+    with imaplib.IMAP4_SSL(host, port=int(port)) as mail:
+        mail.login(address, password)
         mail.select("inbox", readonly=True)
-        _, data = mail.search(None, "FROM", config.email_addr)
+        _, data = mail.search(None, "FROM", config.test.email.address)
         id = data[0].split()[-1]
         _, mail_data = mail.fetch(id, "(RFC822)")
 

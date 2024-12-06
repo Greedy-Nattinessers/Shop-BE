@@ -3,10 +3,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from Services.Config.config import config
 
-auth = f"{config.db_user}:{config.db_password}@"
-
 engine = create_engine(
-    f"mysql://{auth}{config.db_url}/{config.db_name}",
+    f"mysql://{config.database.username}:{config.database.password}@{config.database.host}:{config.database.port}/{config.database.name}",
     connect_args={"connect_timeout": 10},
 )
 

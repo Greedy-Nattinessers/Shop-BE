@@ -25,14 +25,14 @@ with open("Templates/captcha.html", "r", encoding="utf-8") as f:
 
 
 def _send_email(addr: str, subject: str, body: str):
-    smtp = smtplib.SMTP_SSL(config.email_host, port=int(config.email_port), timeout=5)
-    smtp.login(config.email_addr, config.email_pwd)
+    smtp = smtplib.SMTP_SSL(config.email.host, port=config.email.port, timeout=5)
+    smtp.login(config.email.address, config.email.password)
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = config.email_addr
+    msg["From"] = config.email.address
     msg["To"] = addr
     msg.attach(MIMEText(body, "html"))
-    smtp.sendmail(config.email_addr, addr, msg.as_string())
+    smtp.sendmail(config.email.address, addr, msg.as_string())
     smtp.quit()
 
 

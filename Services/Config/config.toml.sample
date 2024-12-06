@@ -1,0 +1,27 @@
+[security]
+secret_key = # Generate a secret key using the command: openssl rand -hex 32
+
+[database]
+host =  # Database host
+port =  # Database port
+name =  # Database name
+username =  # Database username
+password =  # Database password
+
+[email]
+host =  # SMTP host
+port =  # SMTP port
+address =   # Email address
+password =  # Email password
+
+# Optional Configurations
+
+# [log]
+# log_level =  # Set to debug, info, warning, error, or critical
+# [test]
+# is_test =  # Set to true to enable test mode
+# [test.email]
+# host =  # IMAP host
+# port =  # IMAP port
+# address =   # Email address
+# password =  # Email password
