@@ -58,6 +58,7 @@ async def user_reg(
         normalized_email = emailinfo.normalized
     except EmailNotValidError:
         raise ExceptionResponseEnum.INVALID_OPERATION()
+    is_init_user = db.query(UserDb).first() is None
 
     if (
         db.query(UserDb)
@@ -82,7 +83,7 @@ async def user_reg(
             email=normalized_email,
             username=username,
             password=bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()),
-            permission=Permission.User(),
+            permission=Permission.Admin() if is_init_user else Permission.User(),
         )
     )
     db.commit()
