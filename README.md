@@ -2,6 +2,10 @@
 
 [![Tests](https://github.com/Greedy-Nattinessers/Shop-BE/actions/workflows/test.yml/badge.svg)](https://github.com/Greedy-Nattinessers/Shop-BE/actions/workflows/test.yml)
 
+[![codecov](https://codecov.io/gh/Greedy-Nattinessers/Shop-BE/graph/badge.svg?token=1FLZ0YFMSS)](https://codecov.io/gh/Greedy-Nattinessers/Shop-BE)
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Greedy-Nattinessers_Shop-BE&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Greedy-Nattinessers_Shop-BE)
+
 ## 部署方式 🛠️
 
 必须拥有以下环境:
@@ -43,3 +47,6 @@ poetry run uvicorn main:app
 ```bash
 poetry run uvicorn main:app --reload
 ```
+## 最近一次的测试覆盖
+
+![coverage](https://codecov.io/gh/Greedy-Nattinessers/Shop-BE/graphs/sunburst.svg?token=1FLZ0YFMSS)
