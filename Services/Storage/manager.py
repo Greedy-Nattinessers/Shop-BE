@@ -7,6 +7,8 @@ import filetype
 from fastapi import HTTPException
 
 data_path = Path(os.path.join(os.getcwd(), "Services/Storage/data"))
+if not data_path.exists():
+    data_path.mkdir(parents=True)
 
 
 async def save_file_async(file: bytes) -> UUID:
