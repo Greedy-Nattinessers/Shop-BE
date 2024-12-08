@@ -102,8 +102,9 @@ async def get_commodity_image(cid: UUID) -> Response:
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.put("/update", response_model=BaseResponse)
+@shop_router.put("/update/{cid}", response_model=BaseResponse)
 async def edit_commodity(
+    cid: UUID,
     body: UpdateCommodity = Form(),
     images: list[UploadFile] = [],
     user: User = Depends(get_current_user),
@@ -112,7 +113,7 @@ async def edit_commodity(
     assert verify_user(user, Permission.Admin)
 
     if (
-        record := db.query(CommodityDb).filter(CommodityDb.cid == body.cid).first()
+        record := db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first()
     ) is not None:
         if body.name is not None:
             record.name = body.name
@@ -138,9 +139,13 @@ async def remove_commodity(
     if (
         record := db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first()
     ) is not None:
+        imgs = record.images
         db.delete(record)
         db.commit()
-        remove_file(cid)
-        return StandardResponse[None](status_code=200, message="Commodity deleted")
+        for img in imgs:
+            if not remove_file(UUID(img)):
+                logger.warning(f"Failed to remove image {img}, record {cid}")
+        return StandardResponse[None](status_code=200, message="Commodity removed")
+
     else:
         raise ExceptionResponseEnum.NOT_FOUND()

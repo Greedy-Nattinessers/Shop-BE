@@ -37,7 +37,7 @@ async def load_file_async(fid: str) -> tuple[bytes, str] | None:
 
 def remove_file(fid: UUID) -> bool:
     file_path = data_path.joinpath(fid.hex)
-    if file_path.exists() and file_path.is_relative_to(data_path):
+    if file_path.exists():
         file_path.unlink()
         return True
     return False

@@ -6,9 +6,7 @@ from bs4 import BeautifulSoup
 from Services.Config.config import InvalidConfigError, config
 
 
-def get_captcha(
-    host: str, port: int, address: str, password: str
-) -> str | None:
+def get_captcha(host: str, port: int, address: str, password: str) -> str | None:
     if config.test is None:
         raise InvalidConfigError("Test environment not enabled")
 
