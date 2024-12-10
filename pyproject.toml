@@ -11,7 +11,6 @@ python = "^3.12"
 fastapi = { extras = ["all"], version = "^0.115.5" }
 rich = "^13.9.4"
 concurrent-log-handler = "^0.9.25"
-python-jose = { extras = ["cryptography"], version = "^3.3.0" }
 sqlalchemy = "^2.0.36"
 slowapi = "^0.1.9"
 mysqlclient = "^2.2.6"
@@ -20,6 +19,7 @@ aiocache = "^0.12.3"
 aiofiles = "^24.1.0"
 filetype = "^1.2.0"
 toml = "^0.10.2"
+pyjwt = "^2.10.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"

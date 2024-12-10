@@ -1,8 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
+import jwt
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jwt import InvalidTokenError
 from sqlalchemy.orm import Session
 
 from Models.database import UserDb
@@ -39,7 +40,7 @@ def get_current_user(
         uid: str = payload["id"]
         if uid is None:
             raise ExceptionResponseEnum.AUTH_FAILED()
-    except JWTError:
+    except InvalidTokenError:
         raise ExceptionResponseEnum.AUTH_FAILED()
 
     user: UserDb | None = db.query(UserDb).filter(UserDb.uid == uid).first()
