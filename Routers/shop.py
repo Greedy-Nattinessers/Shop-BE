@@ -25,7 +25,7 @@ async def add_commodity(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[str]:
-    assert verify_user(user, Permission.Admin)
+    assert verify_user(user, Permission.ADMIN)
     if images.__len__() > 5:
         raise ExceptionResponseEnum.INVALID_OPERATION()
 
@@ -94,7 +94,7 @@ async def get_commodity(
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.get("/image", response_class=Response)
+@shop_router.get("/image/{cid}", response_class=Response)
 async def get_commodity_image(cid: UUID) -> Response:
     if (data := await load_file_async(cid.hex)) is not None:
         return Response(content=data[0], media_type=data[1])
@@ -102,15 +102,16 @@ async def get_commodity_image(cid: UUID) -> Response:
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.put("/update/{cid}", response_model=BaseResponse)
+@shop_router.put("/item/{cid}", response_model=BaseResponse)
 async def edit_commodity(
     cid: UUID,
+    no_images: bool = False,
     body: UpdateCommodity = Form(),
     images: list[UploadFile] = [],
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
-    assert verify_user(user, Permission.Admin)
+    assert verify_user(user, Permission.ADMIN)
 
     if (
         record := db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first()
@@ -121,20 +122,40 @@ async def edit_commodity(
             record.price = body.price
         if body.description is not None:
             record.description = body.description
-        if images.__len__() > 0:
-            tasks = [save_file_async(await img.read()) for img in images]
-            imgs_id = await asyncio.gather(*tasks)
-            record.images = jsonable_encoder([img.hex for img in imgs_id])
+        if images.__len__() > 5:
+            raise ExceptionResponseEnum.INVALID_OPERATION()
+
+        tasks = [save_file_async(await img.read()) for img in images]
+        imgs_id = await asyncio.gather(*tasks)
+
+        record.images = jsonable_encoder([img.hex for img in imgs_id])
         db.commit()
         return StandardResponse[None](status_code=200, message="Commodity updated")
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.delete("/delete", response_model=BaseResponse)
+@shop_router.put("/image/{cid}", response_model=BaseResponse)
+async def edit_commodity_image(
+    cid: UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
+    assert verify_user(user, Permission.ADMIN)
+
+    if (
+        record := db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first()
+    ) is not None:
+
+        db.commit()
+        return StandardResponse[None](status_code=200, message="Commodity updated")
+    raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@shop_router.delete("/delete/{cid}", response_model=BaseResponse)
 async def remove_commodity(
     cid: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[None]:
-    assert verify_user(user, Permission.Admin)
+    assert verify_user(user, Permission.ADMIN)
 
     if (
         record := db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first()

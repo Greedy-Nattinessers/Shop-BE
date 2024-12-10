@@ -50,7 +50,7 @@ def get_current_user(
         uid=user.uid,
         username=user.username,
         email=user.email,
-        permission=user.permission,
+        permission=Permission(user.permission),
     )
 
 

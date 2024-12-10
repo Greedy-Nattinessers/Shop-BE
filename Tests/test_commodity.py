@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from Models.commodity import BaseCommodity, Commodity, CreateCommodity, UpdateCommodity
+from Models.commodity import BaseCommodity, Commodity, CreateCommodity
 from Models.response import BaseResponse
 
 
@@ -36,10 +36,8 @@ def test_commodity_all(client: TestClient, create_commodity: str):
 
 def test_commodity_edit(authorized_client: TestClient, create_commodity: str):
     response = authorized_client.put(
-        f"/shop/update/{create_commodity}",
-        data={
-            "body": UpdateCommodity(price=200.0).model_dump_json(),
-        },
+        f"/shop/item/{create_commodity}",
+        data={"body": '{"price": 200}'},
     )
 
     assert response.status_code == 200
@@ -55,7 +53,7 @@ def test_commodity_edit(authorized_client: TestClient, create_commodity: str):
 @pytest.mark.order(after="test_commodity_edit")
 def test_commodity_delete(authorized_client: TestClient, create_commodity: str):
     response = authorized_client.delete(
-        f"/shop/delete", params={"cid": create_commodity}
+        f"/shop/delete/{create_commodity}",
     )
 
     assert response.status_code == 200

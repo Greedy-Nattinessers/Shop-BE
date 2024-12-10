@@ -13,6 +13,10 @@ class Commodity(BaseCommodity):
     images: list[str]
 
 
+class CartCommodity(BaseCommodity):
+    count: int
+
+
 class CreateCommodity(BaseModel):
     name: str
     price: float

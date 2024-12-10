@@ -103,7 +103,7 @@ async def user_reg(
             email=normalized_email,
             username=username,
             password=bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()),
-            permission=Permission.Admin() if is_init_user else Permission.User(),
+            permission=Permission.ADMIN() if is_init_user else Permission.USER(),
         )
     )
     db.commit()
@@ -158,27 +158,24 @@ async def user_recover(
     return StandardResponse[None](status_code=200, message="Password updated")
 
 
-@user_router.put("/profile", response_model=BaseResponse)
+@user_router.put("/profile/{uid}", response_model=BaseResponse)
 async def user_update(
+    uid: UUID,
     body: UpdateUser,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
-    if body.uid != user.uid:
-        assert verify_user(user, Permission.Admin)
+    if uid != user.uid:
+        assert verify_user(user, Permission.ADMIN)
 
-    if (record := db.query(UserDb).filter(UserDb.uid == body.uid).first()) is not None:
-        if body.password is not None and body.new_password is not None:
-            if not bcrypt.checkpw(
-                bytes(body.password, "utf-8"), bytes(record.password, "utf-8")
-            ):
-                raise ExceptionResponseEnum.AUTH_FAILED()
+    if (record := db.query(UserDb).filter(UserDb.uid == uid).first()) is not None:
+        if body.permission is not None and record.permission != body.permission:
+            assert verify_user(user, Permission.ADMIN)
+            record.permission = body.permission()
+        if body.password is not None:
             record.password = bcrypt.hashpw(
-                bytes(body.new_password, "utf-8"), bcrypt.gensalt()
+                bytes(body.password, "utf-8"), bcrypt.gensalt()
             ).decode("utf-8")
-
-        if body.permission is not None:
-            record.permission = body.permission
         db.commit()
         return StandardResponse[None](status_code=200, message="User updated")
     else:
@@ -192,7 +189,7 @@ async def user_profile(
     return StandardResponse[User](data=user)
 
 
-@user_router.post("/add_address", response_model=BaseResponse)
+@user_router.post("/address", response_model=BaseResponse)
 async def add_address(
     body: AddressRequest,
     user: User = Depends(get_current_user),
@@ -207,7 +204,7 @@ async def add_address(
     return StandardResponse[None](status_code=201, message="Address added")
 
 
-@user_router.put("/update_address", response_model=BaseResponse)
+@user_router.put("/address", response_model=BaseResponse)
 async def update_address(
     aid: UUID,
     body: AddressRequest,
@@ -229,7 +226,7 @@ async def update_address(
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@user_router.delete("/delete_address", response_model=BaseResponse)
+@user_router.delete("/address", response_model=BaseResponse)
 async def delete_address(
     aid: UUID,
     user: User = Depends(get_current_user),
