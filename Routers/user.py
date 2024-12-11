@@ -227,7 +227,7 @@ async def add_address(
     return StandardResponse[None](status_code=201, message="Address added")
 
 
-@user_router.put("/address", response_model=BaseResponse)
+@user_router.put("/address/{aid}", response_model=BaseResponse)
 async def update_address(
     aid: UUID,
     body: AddressRequest,
