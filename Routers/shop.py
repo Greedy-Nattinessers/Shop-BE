@@ -18,7 +18,7 @@ shop_router = APIRouter(prefix="/shop")
 logger = logging.getLogger("shop")
 
 
-@shop_router.post("/add", response_model=BaseResponse[str])
+@shop_router.post("/add", response_model=BaseResponse[str], status_code=201)
 async def add_commodity(
     body: CreateCommodity = Form(),
     images: list[UploadFile] = [],

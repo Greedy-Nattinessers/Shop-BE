@@ -66,7 +66,7 @@ async def user_req_recover_captcha(
     )
 
 
-@user_router.post("/register", response_model=BaseResponse)
+@user_router.post("/register", response_model=BaseResponse, status_code=201)
 async def user_reg(
     email: str = Form(),
     username: str = Form(),
@@ -212,7 +212,7 @@ async def get_address(
     )
 
 
-@user_router.post("/address", response_model=BaseResponse)
+@user_router.post("/address", response_model=BaseResponse, status_code=201)
 async def add_address(
     body: AddressRequest,
     user: User = Depends(get_current_user),
