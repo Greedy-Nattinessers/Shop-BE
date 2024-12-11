@@ -8,7 +8,6 @@ from Models.response import BaseResponse
 @pytest.fixture(scope="session")
 def create_commodity(authorized_client: TestClient):
     with open("Tests/Resources/commodity.jpg", "rb") as f:
-        img = f.read()
         response = authorized_client.post(
             "/shop/add",
             data={
@@ -16,13 +15,13 @@ def create_commodity(authorized_client: TestClient):
                     name="TestCommodity", price=100, description="Test"
                 ).model_dump_json(),
             },
-            files={"images": ("commodity.jpg", img, "image/jpeg")},
+            files={"images": ("commodity.jpg", f.read(), "image/jpeg")},
         )
 
-        assert response.status_code == 201
-        cid = BaseResponse[str].model_validate(response.json()).data
-        assert cid is not None
-        return cid
+    assert response.status_code == 201
+    cid = BaseResponse[str].model_validate(response.json()).data
+    assert cid is not None
+    return cid
 
 
 def test_commodity_all(client: TestClient, create_commodity: str):
@@ -53,7 +52,7 @@ def test_commodity_edit(authorized_client: TestClient, create_commodity: str):
 @pytest.mark.order(after="test_commodity_edit")
 def test_commodity_delete(authorized_client: TestClient, create_commodity: str):
     response = authorized_client.delete(
-        f"/shop/delete/{create_commodity}",
+        f"/shop/item/{create_commodity}",
     )
 
     assert response.status_code == 200

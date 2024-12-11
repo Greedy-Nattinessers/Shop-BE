@@ -23,9 +23,9 @@ async def save_file_async(file: bytes) -> UUID:
     return fid
 
 
-async def load_file_async(fid: str) -> tuple[bytes, str] | None:
-    file_path = data_path.joinpath(fid)
-    if not file_path.exists() or not file_path.is_relative_to(data_path):
+async def load_file_async(fid: UUID) -> tuple[bytes, str] | None:
+    file_path = data_path.joinpath(fid.hex)
+    if not file_path.exists():
         return None
 
     async with aiofiles.open(file_path, "rb") as f:

@@ -96,7 +96,7 @@ async def get_commodity(
 
 @shop_router.get("/image/{cid}", response_class=Response)
 async def get_commodity_image(cid: UUID) -> Response:
-    if (data := await load_file_async(cid.hex)) is not None:
+    if (data := await load_file_async(cid)) is not None:
         return Response(content=data[0], media_type=data[1])
 
     raise ExceptionResponseEnum.NOT_FOUND()
@@ -125,33 +125,20 @@ async def edit_commodity(
         if images.__len__() > 5:
             raise ExceptionResponseEnum.INVALID_OPERATION()
 
-        tasks = [save_file_async(await img.read()) for img in images]
-        imgs_id = await asyncio.gather(*tasks)
+        if no_images or images.__len__() > 0:
+            for img in record.images:
+                if not remove_file(UUID(img)):
+                    logger.warning(f"Failed to remove image {img}, record {cid}")
+            tasks = [save_file_async(await img.read()) for img in images]
+            imgs_id = await asyncio.gather(*tasks)
 
-        record.images = jsonable_encoder([img.hex for img in imgs_id])
+            record.images = jsonable_encoder([img.hex for img in imgs_id])
         db.commit()
         return StandardResponse[None](status_code=200, message="Commodity updated")
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.put("/image/{cid}", response_model=BaseResponse)
-async def edit_commodity_image(
-    cid: UUID,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> StandardResponse[None]:
-    assert verify_user(user, Permission.ADMIN)
-
-    if (
-        record := db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first()
-    ) is not None:
-
-        db.commit()
-        return StandardResponse[None](status_code=200, message="Commodity updated")
-    raise ExceptionResponseEnum.NOT_FOUND()
-
-
-@shop_router.delete("/delete/{cid}", response_model=BaseResponse)
+@shop_router.delete("/item/{cid}", response_model=BaseResponse)
 async def remove_commodity(
     cid: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[None]:
