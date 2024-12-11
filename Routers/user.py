@@ -226,7 +226,7 @@ async def update_address(
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@user_router.delete("/address", response_model=BaseResponse)
+@user_router.delete("/address/{aid}", response_model=BaseResponse)
 async def delete_address(
     aid: UUID,
     user: User = Depends(get_current_user),
@@ -234,7 +234,7 @@ async def delete_address(
 ) -> StandardResponse[None]:
     if (
         record := db.query(AddressDb)
-        .filter(AddressDb.uid != user.uid and AddressDb.aid == aid.hex)
+        .filter(AddressDb.uid == user.uid and AddressDb.aid == aid.hex)
         .first()
     ) is not None:
         db.delete(record)
