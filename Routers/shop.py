@@ -18,7 +18,7 @@ shop_router = APIRouter(prefix="/shop")
 logger = logging.getLogger("shop")
 
 
-@shop_router.post("/add", response_model=BaseResponse)
+@shop_router.post("/add", response_model=BaseResponse[str])
 async def add_commodity(
     body: CreateCommodity = Form(),
     images: list[UploadFile] = [],
@@ -50,7 +50,7 @@ async def add_commodity(
     )
 
 
-@shop_router.get("/all", response_model=BaseResponse)
+@shop_router.get("/all", response_model=BaseResponse[list[BaseCommodity]])
 async def all_commodity(
     page: int = 1, db: Session = Depends(get_db)
 ) -> StandardResponse[list[BaseCommodity]]:
@@ -72,7 +72,7 @@ async def all_commodity(
     )
 
 
-@shop_router.get("/item/{commodity}", response_model=BaseResponse)
+@shop_router.get("/item/{commodity}", response_model=BaseResponse[Commodity])
 async def get_commodity(
     commodity: UUID, db: Session = Depends(get_db)
 ) -> StandardResponse[Commodity]:

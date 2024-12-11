@@ -26,7 +26,7 @@ user_router = APIRouter(prefix="/user")
 logger = logging.getLogger("user")
 
 
-@user_router.get("/captcha/register", response_model=BaseResponse)
+@user_router.get("/captcha/register", response_model=BaseResponse[str])
 @freq_limiter.limit("1/minute")
 async def user_req_register_captcha(
     request: Request, email: str
@@ -46,7 +46,7 @@ async def user_req_register_captcha(
     )
 
 
-@user_router.get("/captcha/recover", response_model=BaseResponse)
+@user_router.get("/captcha/recover", response_model=BaseResponse[str])
 @freq_limiter.limit("1/minute")
 async def user_req_recover_captcha(
     request: Request, email: str
@@ -110,7 +110,7 @@ async def user_reg(
     return StandardResponse[None](status_code=201, message="User created")
 
 
-@user_router.post("/login", response_model=BaseResponse)
+@user_router.post("/login", response_model=BaseResponse[Token])
 async def user_login(
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
@@ -182,11 +182,34 @@ async def user_update(
         raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@user_router.get("/profile", response_model=BaseResponse)
+@user_router.get("/profile", response_model=BaseResponse[User])
 async def user_profile(
     user: User = Depends(get_current_user),
 ) -> StandardResponse[User]:
     return StandardResponse[User](data=user)
+
+
+@user_router.get("/address", response_model=BaseResponse[UserAddress])
+async def get_address(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> StandardResponse[list[UserAddress]]:
+    record = db.query(AddressDb).filter(AddressDb.uid == user.uid).all()
+
+    return StandardResponse[list[UserAddress]](
+        status_code=200,
+        message=None,
+        data=[
+            UserAddress(
+                uid=item.uid,
+                aid=item.aid,
+                is_default=item.is_default,
+                address=item.address,
+                phone=item.phone,
+                name=item.name,
+            )
+            for item in record
+        ],
+    )
 
 
 @user_router.post("/address", response_model=BaseResponse)
@@ -241,26 +264,3 @@ async def delete_address(
         db.commit()
         return StandardResponse[None](status_code=200, message="Address deleted")
     raise ExceptionResponseEnum.NOT_FOUND()
-
-
-@user_router.get("/address", response_model=BaseResponse)
-async def get_address(
-    user: User = Depends(get_current_user), db: Session = Depends(get_db)
-) -> StandardResponse[list[UserAddress]]:
-    record = db.query(AddressDb).filter(AddressDb.uid == user.uid).all()
-
-    return StandardResponse[list[UserAddress]](
-        status_code=200,
-        message=None,
-        data=[
-            UserAddress(
-                uid=item.uid,
-                aid=item.aid,
-                is_default=item.is_default,
-                address=item.address,
-                phone=item.phone,
-                name=item.name,
-            )
-            for item in record
-        ],
-    )

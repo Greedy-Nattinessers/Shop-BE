@@ -20,7 +20,7 @@ async def cart_add(
     cid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> StandardResponse:
+) -> StandardResponse[None]:
     if db.query(CommodityDb).filter(CommodityDb.cid == cid).first() is None:
         raise ExceptionResponseEnum.NOT_FOUND()
     if (
