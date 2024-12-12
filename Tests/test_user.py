@@ -19,7 +19,7 @@ def test_user_profile(authorized_client: TestClient):
     assert data is not None and data.permission == Permission.ADMIN
 
 
-def test_user_recover(authorized_client: TestClient, register_user: tuple[str, str]):
+def test_user_recover(authorized_client: TestClient):
     if (test_config := config.test) is None:
         raise InvalidConfigError("Test environment not enabled")
 
@@ -48,11 +48,12 @@ def test_user_recover(authorized_client: TestClient, register_user: tuple[str, s
     )
 
     assert recover_response.status_code == 200
-    BaseResponse[None].model_validate(recover_response.json())
+    username = BaseResponse[str].model_validate(recover_response.json()).data
+    assert username is not None
 
     login_response = authorized_client.post(
         "/user/login",
-        data={"username": register_user[0], "password": test_password},
+        data={"username": username, "password": test_password},
     )
 
     assert login_response.status_code == 200

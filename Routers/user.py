@@ -67,7 +67,9 @@ async def user_req_recover_captcha(
 
 
 @user_router.post("/register", response_model=BaseResponse, status_code=201)
+@freq_limiter.limit("10/minute")
 async def user_reg(
+    request: Request,
     email: str = Form(),
     username: str = Form(),
     password: str = Form(),
@@ -111,7 +113,9 @@ async def user_reg(
 
 
 @user_router.post("/login", response_model=BaseResponse[Token])
+@freq_limiter.limit("10/minute")
 async def user_login(
+    request: Request,
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> StandardResponse[Token]:
@@ -133,13 +137,15 @@ async def user_login(
 
 
 @user_router.post("/recover", response_model=BaseResponse)
+@freq_limiter.limit("10/minute")
 async def user_recover(
+    request: Request,
     email: str = Form(),
     password: str = Form(),
     captcha: str = Form(),
     request_id: str = Header(convert_underscores=True),
     db: Session = Depends(get_db),
-) -> StandardResponse[None]:
+) -> StandardResponse[str]:
     if (record := db.query(UserDb).filter(UserDb.email == email).first()) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
 
@@ -153,9 +159,12 @@ async def user_recover(
     record.password = bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()).decode(
         "utf-8"
     )
-
+    username = record.username
     db.commit()
-    return StandardResponse[None](status_code=200, message="Password updated")
+
+    return StandardResponse[str](
+        status_code=200, message="Password updated", data=username
+    )
 
 
 @user_router.put("/profile/{uid}", response_model=BaseResponse)
