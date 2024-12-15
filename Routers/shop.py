@@ -94,9 +94,24 @@ async def get_commodity(
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.get("/image/{cid}", response_class=Response)
-async def get_commodity_image(cid: UUID) -> Response:
-    if (data := await load_file_async(cid)) is not None:
+@shop_router.get("/item/{commodity}/album", response_class=Response)
+async def get_commodity_album(
+    commodity: UUID, db: Session = Depends(get_db)
+) -> Response:
+    if (
+        record := db.query(CommodityDb).filter(CommodityDb.cid == commodity.hex).first()
+    ) is not None:
+        if (
+            album := record.images[0] if record.images.__len__() > 0 else None
+        ) is not None:
+            if (data := await load_file_async(UUID(album))) is not None:
+                return Response(content=data[0], media_type=data[1])
+    raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@shop_router.get("/image/{fid}", response_class=Response)
+async def get_commodity_image(fid: UUID) -> Response:
+    if (data := await load_file_async(fid)) is not None:
         return Response(content=data[0], media_type=data[1])
 
     raise ExceptionResponseEnum.NOT_FOUND()
