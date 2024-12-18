@@ -6,21 +6,25 @@
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Greedy-Nattinessers_Shop-BE&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Greedy-Nattinessers_Shop-BE)
 
+## 最近一次的测试覆盖
+
+![coverage](https://codecov.io/gh/Greedy-Nattinessers/Shop-BE/graphs/sunburst.svg?token=1FLZ0YFMSS)
+
 ## 部署方式 🛠️
 
 必须拥有以下环境:
 
-- Python 3.12+
-- MySQL 服务器
-- Poetry
+- `Python` 3.12+
+- `MySQL` 服务器
+- `uv`
 
-安装依赖:
+安装指定的 Python 版本:
 
 ```bash
-poetry install
+uv python install
 ```
 
-如果在 Linux 下，必须先安装前置的 MySQL 依赖:
+如果在 Linux 下，必须先安装前置的 MySQL 客户端依赖:
 
 ```bash
 sudo apt-get install python3-dev default-libmysqlclient-dev build-essential pkg-config # Debian / Ubuntu
@@ -28,6 +32,18 @@ sudo apt-get install python3-dev default-libmysqlclient-dev build-essential pkg-
 
 ```bash
 sudo yum install python3-devel mysql-devel pkgconfig # Red Hat / CentOS
+```
+
+安装项目依赖:
+
+```bash
+uv sync
+```
+
+如果是在开发环境下需要运行测试代码，可以使用以下命令安装开发环境下的依赖:
+
+```bash
+uv sync --dev
 ```
 
 修改`Services/Config/config.toml.sample`中的相应配置信息并保存为`config.toml`:
@@ -38,15 +54,10 @@ sudo yum install python3-devel mysql-devel pkgconfig # Red Hat / CentOS
 
 ## 运行方式 🚀
 
-```bash
-poetry run uvicorn main:app
-```
-
-如果希望能使用热更新功能，可以使用以下命令:
+如果是调试 FastAPI 服务，可以使用以下命令:
 
 ```bash
-poetry run uvicorn main:app --reload
+uv run fastapi dev
 ```
-## 最近一次的测试覆盖
 
-![coverage](https://codecov.io/gh/Greedy-Nattinessers/Shop-BE/graphs/sunburst.svg?token=1FLZ0YFMSS)
+部署，推荐使用 `Docker` 来完成。

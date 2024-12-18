@@ -168,6 +168,10 @@ cython_debug/
 poetry.toml
 poetry.lock
 
+# uv local configuration file
+uv.lock
+.python-version
+
 # ruff
 .ruff_cache/
 
@@ -187,6 +191,8 @@ Logs/*
 
 # Conifg
 Services/Config/config.toml
+Services/Config/config.json
+
 
 # Local Storage
 Services/Storage/data/*
