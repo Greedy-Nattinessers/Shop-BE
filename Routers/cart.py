@@ -15,7 +15,7 @@ cart_router = APIRouter(prefix="/cart")
 logger = logging.getLogger("cart")
 
 
-@cart_router.post("/add", response_model=BaseResponse)
+@cart_router.post("/add/{cid}", response_model=BaseResponse)
 async def cart_add(
     cid: UUID,
     user: User = Depends(get_current_user),
@@ -35,21 +35,20 @@ async def cart_add(
     return StandardResponse[None](status_code=200, message="Commodity added")
 
 
-@cart_router.delete("/remove", response_model=BaseResponse)
+@cart_router.delete("/remove/{cid}", response_model=BaseResponse)
 async def cart_delete(
     cid: UUID,
-    is_all: bool = False,
+    remove_all: bool = False,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
-
     if (
         record := db.query(CartDb)
         .filter(CartDb.cid == cid.hex and CartDb.uid == user.uid)
         .first()
     ) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
-    if is_all or record.count <= 1:
+    if remove_all or record.count <= 1:
         db.query(CartDb).filter(
             CartDb.cid == cid.hex and CartDb.uid == user.uid
         ).delete()
@@ -57,6 +56,18 @@ async def cart_delete(
         record.count -= 1
     db.commit()
     return StandardResponse[None](status_code=200, message="Commodity deleted")
+
+
+@cart_router.delete("/all", response_model=BaseResponse)
+async def cart_clear(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> StandardResponse[None]:
+    record = db.query(CartDb).filter(CartDb.uid == user.uid)
+    if len(record.all()) == 0:
+        return StandardResponse[None](status_code=200, message="Cart is empty")
+    record.delete()
+    db.commit()
+    return StandardResponse[None](status_code=200, message="Cart cleared")
 
 
 @cart_router.get("/all", response_model=BaseResponse[list[CartCommodity]])

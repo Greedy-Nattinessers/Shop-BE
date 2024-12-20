@@ -1,6 +1,8 @@
 from enum import Enum
 
 from fastapi import HTTPException, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -85,4 +87,14 @@ class ExceptionResponseEnum(Enum):
 async def http_exception_handler(request, exc: HTTPException) -> StandardResponse[None]:
     return StandardResponse[None](
         status_code=exc.status_code, message=exc.detail, data=None
+    )
+
+
+async def validation_exception_handler(
+    request, exc: RequestValidationError
+) -> StandardResponse[object]:
+    return StandardResponse[object](
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        message="Invalid request data structure.",
+        data=jsonable_encoder(exc.errors()),
     )

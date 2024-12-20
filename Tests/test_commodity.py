@@ -1,4 +1,6 @@
-import pytest, hashlib
+import hashlib
+
+import pytest
 from fastapi.testclient import TestClient
 
 from Models.commodity import BaseCommodity, Commodity, CreateCommodity
