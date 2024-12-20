@@ -45,12 +45,20 @@ def test_get_commodity(client: TestClient, create_commodity: str):
     data = BaseResponse[Commodity].model_validate(commodity_response.json()).data
     assert data is not None and data.description == "Test"
 
-    album_response = client.get(f"/shop/image/{data.album}")
+    album_response = client.get(f"/shop/item/{create_commodity}/album")
     assert album_response.status_code == 200
+
+    image_response = client.get(f"/shop/image/{data.images[1]}")
+    assert image_response.status_code == 200
 
     with open("Tests/Resources/commodity.jpg", "rb") as f:
         assert (
             hashlib.sha256(album_response.content).hexdigest()
+            == hashlib.sha256(f.read()).hexdigest()
+        )
+    with open("Tests/Resources/commodity_2.png", "rb") as f:
+        assert (
+            hashlib.sha256(image_response.content).hexdigest()
             == hashlib.sha256(f.read()).hexdigest()
         )
 
