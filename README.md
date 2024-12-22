@@ -58,8 +58,12 @@ uv sync --dev
 
 如果是调试 FastAPI 服务，可以使用以下命令:
 
+<del>uv run fastapi dev</dev>
+
+`FastAPI` 的 `dev` 命令会造成自动重载卡死，请先使用部署模式运行。
+
 ```bash
-uv run fastapi dev
+uv run fastapi run
 ```
 
 部署，推荐使用 `Docker` 来完成。
