@@ -185,30 +185,22 @@ async def user_recover(
 
 @user_router.put("/profile/{uid}", response_model=BaseResponse)
 async def user_update(
-    uid: str,
+    uid: UUID,
     body: UpdateUser,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
-    print(body.permission)
-
-    if uid != user.uid:
-        print(uid)
-        print(user.uid)
+    if uid.hex != user.uid:
         assert verify_user(user, Permission.ADMIN)
 
-    if (record := db.query(UserDb).filter(UserDb.uid == uid).first()) is not None:
-        print("found")
+    if (record := db.query(UserDb).filter(UserDb.uid == uid.hex).first()) is not None:
         if body.birthday is not None:
             record.birthday = body.birthday
         if body.gender is not None:
             record.gender = body.gender.value
         
         if body.permission is not None and record.permission != body.permission.value:
-
-            print("equal")
             assert verify_user(user, Permission.ADMIN)
-            print("can do")
             record.permission = body.permission()
         if body.password is not None:
             record.password = bcrypt.hashpw(
