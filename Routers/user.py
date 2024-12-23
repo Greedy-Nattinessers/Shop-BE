@@ -190,21 +190,23 @@ async def user_update(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
-    if uid != user.uid:
+    if uid.hex != user.uid:
         assert verify_user(user, Permission.ADMIN)
 
-    if (record := db.query(UserDb).filter(UserDb.uid == uid).first()) is not None:
-        if body.gender is not None:
-            record.gender = body.gender.value
+    if (record := db.query(UserDb).filter(UserDb.uid == uid.hex).first()) is not None:
         if body.birthday is not None:
             record.birthday = body.birthday
-        if body.permission is not None and record.permission != body.permission:
+        if body.gender is not None:
+            record.gender = body.gender.value
+        
+        if body.permission is not None and record.permission != body.permission.value:
             assert verify_user(user, Permission.ADMIN)
             record.permission = body.permission()
         if body.password is not None:
             record.password = bcrypt.hashpw(
                 bytes(body.password, "utf-8"), bcrypt.gensalt()
             ).decode("utf-8")
+        # db.query().filter().update
         db.commit()
         return StandardResponse[None](status_code=200, message="User updated")
     else:
