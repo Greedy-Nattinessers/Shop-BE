@@ -3,7 +3,7 @@ import hashlib
 import pytest
 from fastapi.testclient import TestClient
 
-from Models.commodity import BaseCommodity, Commodity, CreateCommodity
+from Models.commodity import BaseCommodity, Comment, Commodity, CreateCommodity
 from Models.response import BaseResponse
 
 
@@ -61,6 +61,32 @@ def test_get_commodity(client: TestClient, create_commodity: str):
             hashlib.sha256(image_response.content).hexdigest()
             == hashlib.sha256(f.read()).hexdigest()
         )
+
+
+def test_comment(authorized_client: TestClient, create_commodity: str):
+    add_response = authorized_client.post(
+        f"/shop/item/{create_commodity}/comment",
+        json={"content": "TestComment", "reply": None},
+    )
+
+    assert add_response.status_code == 201
+    BaseResponse[None].model_validate(add_response.json())
+
+    get_response = authorized_client.get(f"/shop/item/{create_commodity}/comment")
+    assert get_response.status_code == 200
+    data = BaseResponse[list[Comment]].model_validate(get_response.json()).data
+    assert data is not None and len(data) == 1
+    assert data[0].content == "TestComment"
+    cid = data[0].cid
+
+    del_response = authorized_client.delete(f"/shop/comment/{cid}")
+    assert del_response.status_code == 200
+    BaseResponse[None].model_validate(del_response.json())
+
+    get_response = authorized_client.get(f"/shop/item/{create_commodity}/comment")
+    assert get_response.status_code == 200
+    data = BaseResponse[list[Comment]].model_validate(get_response.json()).data
+    assert data is not None and len(data) == 0
 
 
 @pytest.mark.order(after="test_get_commodity")

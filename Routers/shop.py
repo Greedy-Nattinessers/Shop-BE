@@ -6,8 +6,15 @@ from fastapi import APIRouter, Depends, Form, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
-from Models.commodity import BaseCommodity, Commodity, CreateCommodity, UpdateCommodity
-from Models.database import CommodityDb
+from Models.commodity import (
+    BaseCommodity,
+    Comment,
+    CommentBase,
+    Commodity,
+    CreateCommodity,
+    UpdateCommodity,
+)
+from Models.database import CommentDb, CommodityDb
 from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
 from Models.user import Permission, User
 from Services.Database.database import get_db
@@ -168,6 +175,10 @@ async def remove_commodity(
     ) is not None:
         imgs = record.images
         db.delete(record)
+
+        for comment in db.query(CommentDb).filter(CommentDb.commodity == cid.hex).all():
+            db.delete(comment)
+
         db.commit()
         for img in imgs:
             if not remove_file(UUID(img)):
@@ -176,3 +187,59 @@ async def remove_commodity(
 
     else:
         raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@shop_router.post("/item/{cid}/comment", response_model=BaseResponse, status_code=201)
+async def add_comment(
+    cid: UUID,
+    body: CommentBase,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
+    if db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first() is not None:
+        db.add(
+            CommentDb(
+                cid=uuid4().hex,
+                uid=user.uid,
+                commodity=cid.hex,
+                reply=body.reply,
+                content=body.content,
+            )
+        )
+        db.commit()
+        return StandardResponse[None](status_code=201, message="Comment added")
+    raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@shop_router.get("/item/{cid}/comment", response_model=BaseResponse[list[CommentBase]])
+async def get_comment(
+    cid: UUID,
+    db: Session = Depends(get_db),
+) -> StandardResponse[list[Comment]]:
+    if db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first() is not None:
+        comments = [
+            Comment(**item.__dict__)
+            for item in db.query(CommentDb).filter(CommentDb.commodity == cid.hex).all()
+        ]
+
+        return StandardResponse[list[Comment]](
+            status_code=200, message=None, data=comments
+        )
+    raise ExceptionResponseEnum.NOT_FOUND()
+
+
+@shop_router.delete("/comment/{id}", response_model=BaseResponse)
+async def delete_comment(
+    id: UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse[None]:
+    if (
+        record := db.query(CommentDb).filter(CommentDb.cid == id.hex).first()
+    ) is not None:
+        if record.uid != user.uid and not verify_user(user, Permission.ADMIN):
+            raise ExceptionResponseEnum.PERMISSION_DENIED()
+        db.delete(record)
+        db.commit()
+        return StandardResponse[None](status_code=200, message="Comment removed")
+    raise ExceptionResponseEnum.NOT_FOUND()

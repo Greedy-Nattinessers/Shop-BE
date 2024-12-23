@@ -6,11 +6,11 @@ from fastapi.testclient import TestClient
 
 from main import app
 from Models.response import BaseResponse
-from Models.user import Token
+from Models.user import Gender, Token
 from Services.Config.config import InvalidConfigError, config
 from Tests.Utils.user import get_captcha
 
-if (test_config := config.test) is None:
+if (test_config := config.test) is None or not test_config.is_test:
     raise InvalidConfigError("Test environment not enabled")
 
 
@@ -46,6 +46,7 @@ def register_user(client: TestClient) -> tuple[str, str]:
             "username": test_username,
             "password": test_password,
             "email": test_config.email.address,
+            "gender": str(Gender.MALE.value),
             "captcha": captcha,
         },
         headers={"request-id": request_id},
@@ -69,7 +70,7 @@ def login_user(client: TestClient, register_user: tuple[str, str]) -> str:
     data = BaseResponse[Token].model_validate(login_response.json()).data
     assert data is not None
     access_token = data.access_token
-    
+
     return access_token
 
 

@@ -1,4 +1,5 @@
-from sqlalchemy import DECIMAL, INT, JSON, TEXT, VARCHAR
+from datetime import date, datetime
+from sqlalchemy import DATE, DATETIME, DECIMAL, INT, JSON, TEXT, VARCHAR, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from Services.Config.config import config
@@ -12,6 +13,8 @@ class UserDb(Base):
     email: Mapped[str] = mapped_column(TEXT, nullable=False)
     password: Mapped[str] = mapped_column(TEXT, nullable=False)
     permission: Mapped[int] = mapped_column(INT, nullable=False)
+    birthday: Mapped[date | None] = mapped_column(DATE, nullable=True)
+    gender: Mapped[int] = mapped_column(INT, nullable=False)
 
 
 class CommodityDb(Base):
@@ -39,6 +42,18 @@ class CartDb(Base):
     uid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
     cid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
     count: Mapped[int] = mapped_column(INT, nullable=False)
+
+
+class CommentDb(Base):
+    __tablename__ = "comment"
+    cid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
+    uid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    commodity: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    reply: Mapped[str | None] = mapped_column(VARCHAR(32), nullable=True)
+    content: Mapped[str] = mapped_column(TEXT, nullable=False)
+    time: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), default=datetime.now()
+    )
 
 
 if config.test is not None and config.test.is_test:

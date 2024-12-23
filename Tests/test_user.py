@@ -1,22 +1,27 @@
+from datetime import datetime
 import secrets
 from time import sleep
 
+from fastapi.encoders import jsonable_encoder
 import pytest
 from fastapi.testclient import TestClient
 
 from Models.response import BaseResponse
-from Models.user import Permission, Token, User
+from Models.user import Gender, Permission, Token, User
 from Services.Config.config import InvalidConfigError, config
 from Tests.Utils.user import get_captcha
 
 
 def test_user_profile(authorized_client: TestClient):
-
     profile_response = authorized_client.get("/user/profile")
 
     assert profile_response.status_code == 200
     data = BaseResponse[User].model_validate(profile_response.json()).data
-    assert data is not None and data.permission == Permission.ADMIN
+    assert (
+        data is not None
+        and data.permission == Permission.ADMIN
+        and data.gender == Gender.MALE.value
+    )
 
 
 def test_user_recover(authorized_client: TestClient):
@@ -72,9 +77,17 @@ def test_user_update(authorized_client: TestClient, register_user: tuple[str, st
     user_id = data.uid
 
     new_password = secrets.token_urlsafe(16)
+    date = datetime.now().date()
     update_response = authorized_client.put(
         f"/user/profile/{user_id}",
-        json={"password": new_password, "permission": Permission.USER()},
+        json=jsonable_encoder(
+            {
+                "gender": Gender.FEMALE.value,
+                "birthday": date.strftime("%Y-%m-%d"),
+                "password": new_password,
+                "permission": Permission.USER(),
+            }
+        ),
     )
 
     assert update_response.status_code == 200
@@ -94,5 +107,8 @@ def test_user_update(authorized_client: TestClient, register_user: tuple[str, st
     profile_response = authorized_client.get("/user/profile")
     assert profile_response.status_code == 200
     assert (
-        data := BaseResponse[User].model_validate(profile_response.json()).data
-    ) and data.permission == Permission.USER
+        (data := BaseResponse[User].model_validate(profile_response.json()).data)
+        and data.permission == Permission.USER
+        and data.birthday == date
+        and data.gender == Gender.FEMALE
+    )

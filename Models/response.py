@@ -36,7 +36,7 @@ class StandardResponse[T](JSONResponse):
         super().__init__(
             content=BaseResponse[T](
                 status_code=status_code, message=message, data=data
-            ).model_dump(),
+            ).model_dump(mode="json"),
             status_code=status_code,
             headers=headers,
         )

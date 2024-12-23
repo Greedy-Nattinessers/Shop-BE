@@ -10,7 +10,15 @@ from sqlalchemy.orm import Session
 
 from Models.database import AddressDb, UserDb
 from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
-from Models.user import AddressRequest, Permission, Token, UpdateUser, User, UserAddress
+from Models.user import (
+    AddressRequest,
+    Gender,
+    Permission,
+    Token,
+    UpdateUser,
+    User,
+    UserAddress,
+)
 from Services.Cache.cache import cache
 from Services.Database.database import get_db
 from Services.Limiter.slow_limiter import freq_limiter
@@ -73,6 +81,7 @@ async def user_reg(
     email: str = Form(),
     username: str = Form(),
     password: str = Form(),
+    gender: str = Form(),
     captcha: str = Form(),
     request_id: str = Header(convert_underscores=True),
     db: Session = Depends(get_db),
@@ -83,6 +92,11 @@ async def user_reg(
     except EmailNotValidError:
         raise ExceptionResponseEnum.INVALID_OPERATION()
     is_init_user = db.query(UserDb).first() is None
+
+    try:
+        gender_data = Gender(int(gender))
+    except ValueError:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
 
     if (
         db.query(UserDb)
@@ -106,6 +120,8 @@ async def user_reg(
             username=username,
             password=bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()),
             permission=Permission.ADMIN() if is_init_user else Permission.USER(),
+            birthday=None,
+            gender=gender_data.value,
         )
     )
     db.commit()
@@ -178,6 +194,10 @@ async def user_update(
         assert verify_user(user, Permission.ADMIN)
 
     if (record := db.query(UserDb).filter(UserDb.uid == uid).first()) is not None:
+        if body.gender is not None:
+            record.gender = body.gender.value
+        if body.birthday is not None:
+            record.birthday = body.birthday
         if body.permission is not None and record.permission != body.permission:
             assert verify_user(user, Permission.ADMIN)
             record.permission = body.permission()

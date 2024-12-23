@@ -1,3 +1,5 @@
+from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, model_validator
 
 
@@ -41,3 +43,15 @@ class UpdateCommodity(BaseModel):
         if isinstance(value, str):
             return cls.model_validate_json(value)
         return value
+
+
+class CommentBase(BaseModel):
+    content: str
+    reply: str | None
+
+
+class Comment(CommentBase):
+    cid: str
+    commodity: str
+    uid: str
+    time: datetime

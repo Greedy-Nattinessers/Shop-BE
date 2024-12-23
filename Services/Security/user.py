@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from Models.database import UserDb
 from Models.response import ExceptionResponseEnum
-from Models.user import Permission, User
+from Models.user import Gender, Permission, User
 from Services.Config.config import config
 from Services.Database.database import get_db
 from Services.Log.logger import logging
@@ -52,6 +52,8 @@ def get_current_user(
         username=user.username,
         email=user.email,
         permission=Permission(user.permission),
+        gender=Gender(user.gender),
+        birthday=user.birthday,
     )
 
 

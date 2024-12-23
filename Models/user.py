@@ -1,3 +1,4 @@
+from datetime import date
 from enum import Enum
 from uuid import uuid4
 
@@ -16,11 +17,21 @@ class Permission(int, Enum):
         return self.value
 
 
+class Gender(int, Enum):
+    MALE = 1
+    FEMALE = 0
+
+    def __call__(self) -> int:
+        return self.value
+
+
 class User(BaseModel):
     uid: str
     username: str
     email: str
     permission: Permission
+    birthday: date | None
+    gender: Gender
 
 
 class UserAddress(BaseModel):
@@ -50,6 +61,8 @@ class AddressRequest(BaseModel):
 
 
 class UpdateUser(BaseModel):
+    birthday: date | None = None
+    gender: Gender | None = None
     password: str | None = None
     permission: Permission | None = None
 
