@@ -25,7 +25,7 @@ async def cart_add(
         raise ExceptionResponseEnum.NOT_FOUND()
     if (
         record := db.query(CartDb)
-        .filter(CartDb.cid == cid.hex and CartDb.uid == user.uid)
+        .filter(CartDb.cid == cid.hex, CartDb.uid == user.uid)
         .first()
     ) is not None:
         record.count += 1
@@ -44,14 +44,12 @@ async def cart_delete(
 ) -> StandardResponse[None]:
     if (
         record := db.query(CartDb)
-        .filter(CartDb.cid == cid.hex and CartDb.uid == user.uid)
+        .filter(CartDb.cid == cid.hex, CartDb.uid == user.uid)
         .first()
     ) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
     if remove_all or record.count <= 1:
-        db.query(CartDb).filter(
-            CartDb.cid == cid.hex and CartDb.uid == user.uid
-        ).delete()
+        db.query(CartDb).filter(CartDb.cid == cid.hex, CartDb.uid == user.uid).delete()
     else:
         record.count -= 1
     db.commit()

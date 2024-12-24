@@ -100,7 +100,7 @@ async def user_reg(
 
     if (
         db.query(UserDb)
-        .filter(UserDb.email == normalized_email or UserDb.username == username)
+        .filter((UserDb.email == normalized_email) | (UserDb.username == username))
         .first()
         is not None
     ):
@@ -198,7 +198,6 @@ async def user_update(
             record.birthday = body.birthday
         if body.gender is not None:
             record.gender = body.gender.value
-        
         if body.permission is not None and record.permission != body.permission.value:
             assert verify_user(user, Permission.ADMIN)
             record.permission = body.permission()
@@ -206,7 +205,6 @@ async def user_update(
             record.password = bcrypt.hashpw(
                 bytes(body.password, "utf-8"), bcrypt.gensalt()
             ).decode("utf-8")
-        # db.query().filter().update
         db.commit()
         return StandardResponse[None](status_code=200, message="User updated")
     else:
@@ -266,10 +264,12 @@ async def update_address(
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (
-        record := db.query(AddressDb).filter(
-            AddressDb.uid == user.uid and AddressDb.aid == aid.hex
+        record := (
+            db.query(AddressDb).filter(
+                AddressDb.uid == user.uid, AddressDb.aid == aid.hex
+            )
         )
-    ) is not None:
+    ).count() > 0:
         if body.is_default:
             db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
                 {"is_default": False}
@@ -288,7 +288,7 @@ async def delete_address(
 ) -> StandardResponse[None]:
     if (
         record := db.query(AddressDb)
-        .filter(AddressDb.uid == user.uid and AddressDb.aid == aid.hex)
+        .filter(AddressDb.uid == user.uid, AddressDb.aid == aid.hex)
         .first()
     ) is not None:
         db.delete(record)
