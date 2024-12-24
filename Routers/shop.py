@@ -211,7 +211,7 @@ async def add_comment(
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@shop_router.get("/item/{cid}/comment", response_model=BaseResponse[list[CommentBase]])
+@shop_router.get("/item/{cid}/comment", response_model=BaseResponse[list[Comment]])
 async def get_comment(
     cid: UUID,
     db: Session = Depends(get_db),
