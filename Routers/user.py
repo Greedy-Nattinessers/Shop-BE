@@ -48,7 +48,7 @@ async def user_req_register_captcha(
     ip = request.client.host if request.client else "Unknown"
     captcha = send_captcha(normalized_email, Purpose.REGISTER, ip)
     request_id = uuid4().hex
-    await cache.set(key=request_id, value=captcha, ttl=300)
+    await cache.set(key=f"{normalized_email}_{request_id}", value=captcha, ttl=300)
     return StandardResponse[str](
         status_code=200, message="Captcha sent", data=request_id
     )
@@ -68,7 +68,7 @@ async def user_req_recover_captcha(
     ip = request.client.host if request.client else "Unknown"
     captcha = send_captcha(normalized_email, Purpose.RECOVER_PASSWORD, ip)
     request_id = uuid4().hex
-    await cache.set(key=request_id, value=captcha, ttl=300)
+    await cache.set(key=f"{normalized_email}_{request_id}", value=captcha, ttl=300)
     return StandardResponse[str](
         status_code=200, message="Captcha sent", data=request_id
     )
@@ -107,11 +107,11 @@ async def user_reg(
         raise ExceptionResponseEnum.RESOURCE_CONFILCT()
 
     if (
-        cached_captcha := await cache.get(request_id)
+        cached_captcha := await cache.get(f"{normalized_email}_{request_id}")
     ) is None or cached_captcha != captcha:
         raise ExceptionResponseEnum.CAPTCHA_FAILED()
 
-    await cache.delete(request_id)
+    await cache.delete(f"{normalized_email}_{request_id}")
 
     db.add(
         UserDb(
@@ -165,12 +165,18 @@ async def user_recover(
     if (record := db.query(UserDb).filter(UserDb.email == email).first()) is None:
         raise ExceptionResponseEnum.NOT_FOUND()
 
+    try:
+        emailinfo = validate_email(email, check_deliverability=False)
+        normalized_email = emailinfo.normalized
+    except EmailNotValidError:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
+
     if (
-        cached_captcha := await cache.get(request_id)
+        cached_captcha := await cache.get(f"{normalized_email}_{request_id}")
     ) is None or cached_captcha != captcha:
         raise ExceptionResponseEnum.CAPTCHA_FAILED()
 
-    await cache.delete(request_id)
+    await cache.delete(f"{normalized_email}_{request_id}")
 
     record.password = bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt()).decode(
         "utf-8"

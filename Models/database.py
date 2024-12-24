@@ -1,5 +1,6 @@
 from datetime import date, datetime
-from sqlalchemy import DATE, DATETIME, DECIMAL, INT, JSON, TEXT, VARCHAR, func
+
+from sqlalchemy import DATE, DATETIME, DECIMAL, INT, JSON, TEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from Services.Config.config import config
