@@ -66,7 +66,7 @@ def test_get_commodity(client: TestClient, create_commodity: str):
 def test_comment(authorized_client: TestClient, create_commodity: str):
     add_response = authorized_client.post(
         f"/shop/item/{create_commodity}/comment",
-        json={"content": "TestComment", "reply": None},
+        json={"content": "TestComment"},
     )
 
     assert add_response.status_code == 201

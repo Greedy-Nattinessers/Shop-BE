@@ -23,6 +23,15 @@ def test_user_profile(authorized_client: TestClient):
         and data.gender == Gender.MALE.value
     )
 
+    profile_response = authorized_client.get(f"/user/profile/{data.uid}")
+    assert profile_response.status_code == 200
+    data = BaseResponse[User].model_validate(profile_response.json()).data
+    assert (
+        data is not None
+        and data.permission == Permission.ADMIN
+        and data.gender == Gender.MALE.value
+    )
+
 
 def test_user_recover(authorized_client: TestClient):
     if (test_config := config.test) is None:

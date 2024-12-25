@@ -50,7 +50,6 @@ class CommentDb(Base):
     cid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
     uid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
     commodity: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
-    reply: Mapped[str | None] = mapped_column(VARCHAR(32), nullable=True)
     content: Mapped[str] = mapped_column(TEXT, nullable=False)
     time: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True), default=datetime.now()

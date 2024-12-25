@@ -202,7 +202,6 @@ async def add_comment(
                 cid=uuid4().hex,
                 uid=user.uid,
                 commodity=cid.hex,
-                reply=body.reply,
                 content=body.content,
             )
         )

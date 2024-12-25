@@ -47,7 +47,6 @@ class UpdateCommodity(BaseModel):
 
 class CommentBase(BaseModel):
     content: str
-    reply: str | None
 
 
 class Comment(CommentBase):

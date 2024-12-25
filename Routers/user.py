@@ -218,10 +218,21 @@ async def user_update(
 
 
 @user_router.get("/profile", response_model=BaseResponse[User])
-async def user_profile(
+async def user_profile_self(
     user: User = Depends(get_current_user),
 ) -> StandardResponse[User]:
     return StandardResponse[User](data=user)
+
+
+@user_router.get("/profile/{uid}", response_model=BaseResponse[User])
+async def user_profile(
+    uid: UUID,
+    db: Session = Depends(get_db),
+) -> StandardResponse[User]:
+    if (record := db.query(UserDb).filter(UserDb.uid == uid.hex).first()) is not None:
+        return StandardResponse[User](data=User(**record.__dict__))
+    else:
+        raise ExceptionResponseEnum.NOT_FOUND()
 
 
 @user_router.get("/address", response_model=BaseResponse[UserAddress])
