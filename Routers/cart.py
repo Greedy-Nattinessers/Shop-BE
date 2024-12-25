@@ -16,7 +16,7 @@ logger = logging.getLogger("cart")
 
 
 @cart_router.post("/add/{cid}", response_model=BaseResponse)
-async def cart_add(
+def cart_add(
     cid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -36,7 +36,7 @@ async def cart_add(
 
 
 @cart_router.delete("/remove/{cid}", response_model=BaseResponse)
-async def cart_delete(
+def cart_delete(
     cid: UUID,
     remove_all: bool = False,
     user: User = Depends(get_current_user),
@@ -57,7 +57,7 @@ async def cart_delete(
 
 
 @cart_router.delete("/all", response_model=BaseResponse)
-async def cart_clear(
+def cart_clear(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[None]:
     record = db.query(CartDb).filter(CartDb.uid == user.uid)
@@ -69,7 +69,7 @@ async def cart_clear(
 
 
 @cart_router.get("/all", response_model=BaseResponse[list[CartCommodity]])
-async def cart_all(
+def cart_all(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[list[CartCommodity]]:

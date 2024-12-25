@@ -130,7 +130,7 @@ async def user_reg(
 
 @user_router.post("/login", response_model=BaseResponse[Token])
 @freq_limiter.limit("10/minute")
-async def user_login(
+def user_login(
     request: Request,
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
@@ -190,7 +190,7 @@ async def user_recover(
 
 
 @user_router.put("/profile/{uid}", response_model=BaseResponse)
-async def user_update(
+def user_update(
     uid: UUID,
     body: UpdateUser,
     user: User = Depends(get_current_user),
@@ -218,14 +218,14 @@ async def user_update(
 
 
 @user_router.get("/profile", response_model=BaseResponse[User])
-async def user_profile_self(
+def user_profile_self(
     user: User = Depends(get_current_user),
 ) -> StandardResponse[User]:
     return StandardResponse[User](data=user)
 
 
 @user_router.get("/profile/{uid}", response_model=BaseResponse[User])
-async def user_profile(
+def user_profile(
     uid: UUID,
     db: Session = Depends(get_db),
 ) -> StandardResponse[User]:
@@ -236,7 +236,7 @@ async def user_profile(
 
 
 @user_router.get("/address", response_model=BaseResponse[UserAddress])
-async def get_address(
+def get_address(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[list[UserAddress]]:
     record = db.query(AddressDb).filter(AddressDb.uid == user.uid).all()
@@ -259,7 +259,7 @@ async def get_address(
 
 
 @user_router.post("/address", response_model=BaseResponse, status_code=201)
-async def add_address(
+def add_address(
     body: AddressRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -274,7 +274,7 @@ async def add_address(
 
 
 @user_router.put("/address/{aid}", response_model=BaseResponse)
-async def update_address(
+def update_address(
     aid: UUID,
     body: AddressRequest,
     user: User = Depends(get_current_user),
@@ -298,7 +298,7 @@ async def update_address(
 
 
 @user_router.delete("/address/{aid}", response_model=BaseResponse)
-async def delete_address(
+def delete_address(
     aid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

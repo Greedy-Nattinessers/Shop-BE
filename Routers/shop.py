@@ -58,7 +58,7 @@ async def add_commodity(
 
 
 @shop_router.get("/all", response_model=BaseResponse[list[BaseCommodity]])
-async def all_commodity(
+def all_commodity(
     page: int = 1, db: Session = Depends(get_db)
 ) -> StandardResponse[list[BaseCommodity]]:
     if page < 1:
@@ -80,7 +80,7 @@ async def all_commodity(
 
 
 @shop_router.get("/item/{commodity}", response_model=BaseResponse[Commodity])
-async def get_commodity(
+def get_commodity(
     commodity: UUID, db: Session = Depends(get_db)
 ) -> StandardResponse[Commodity]:
     if (
@@ -165,7 +165,7 @@ async def edit_commodity(
 
 
 @shop_router.delete("/item/{cid}", response_model=BaseResponse)
-async def remove_commodity(
+def remove_commodity(
     cid: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[None]:
     assert verify_user(user, Permission.ADMIN)
@@ -190,7 +190,7 @@ async def remove_commodity(
 
 
 @shop_router.post("/item/{cid}/comment", response_model=BaseResponse, status_code=201)
-async def add_comment(
+def add_comment(
     cid: UUID,
     body: CommentBase,
     user: User = Depends(get_current_user),
@@ -211,7 +211,7 @@ async def add_comment(
 
 
 @shop_router.get("/item/{cid}/comment", response_model=BaseResponse[list[Comment]])
-async def get_comment(
+def get_comment(
     cid: UUID,
     db: Session = Depends(get_db),
 ) -> StandardResponse[list[Comment]]:
@@ -228,7 +228,7 @@ async def get_comment(
 
 
 @shop_router.delete("/comment/{id}", response_model=BaseResponse)
-async def delete_comment(
+def delete_comment(
     id: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
