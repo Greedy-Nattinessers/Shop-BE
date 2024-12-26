@@ -1,6 +1,5 @@
 from datetime import date
 from enum import Enum
-from uuid import uuid4
 
 from pydantic import BaseModel
 
@@ -34,30 +33,16 @@ class User(BaseModel):
     gender: Gender
 
 
-class UserAddress(BaseModel):
+class AddressBase(BaseModel):
+    name: str
+    phone: str
+    address: str
+    is_default: bool
+
+
+class UserAddress(AddressBase):
     aid: str
     uid: str
-    name: str
-    phone: str
-    address: str
-    is_default: bool
-
-
-class AddressRequest(BaseModel):
-    name: str
-    phone: str
-    address: str
-    is_default: bool
-
-    def to_address(self, uid: str) -> UserAddress:
-        return UserAddress(
-            aid=uuid4().hex,
-            uid=uid,
-            phone=self.phone,
-            name=self.name,
-            address=self.address,
-            is_default=self.is_default,
-        )
 
 
 class UpdateUser(BaseModel):

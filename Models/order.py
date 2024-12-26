@@ -8,16 +8,16 @@ class OrderStatus(int, Enum):
     Idle = 0
     Shipped = 1
     Finished = 2
+    Canceled = 3
 
 
 class OrderBase(BaseModel):
-    uid: str
-    cid: str
     aid: str
-    count: int
+    content: dict[str, int]
 
 
 class Order(OrderBase):
+    uid: str
     oid: str
     time: datetime
     status: OrderStatus

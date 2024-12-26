@@ -16,7 +16,7 @@ logger = logging.getLogger("cart")
 
 
 @cart_router.post("/add/{cid}", response_model=BaseResponse)
-def cart_add(
+def add_cart(
     cid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -32,11 +32,11 @@ def cart_add(
     else:
         db.add(CartDb(rid=uuid4().hex, cid=cid.hex, uid=user.uid, count=1))
     db.commit()
-    return StandardResponse[None](status_code=200, message="Commodity added")
+    return StandardResponse[None](message="Commodity added")
 
 
 @cart_router.delete("/remove/{cid}", response_model=BaseResponse)
-def cart_delete(
+def remove_cart(
     cid: UUID,
     remove_all: bool = False,
     user: User = Depends(get_current_user),
@@ -53,31 +53,29 @@ def cart_delete(
     else:
         record.count -= 1
     db.commit()
-    return StandardResponse[None](status_code=200, message="Commodity deleted")
+    return StandardResponse[None](message="Commodity deleted")
 
 
 @cart_router.delete("/all", response_model=BaseResponse)
-def cart_clear(
+def clear_cart(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[None]:
     record = db.query(CartDb).filter(CartDb.uid == user.uid)
     if len(record.all()) == 0:
-        return StandardResponse[None](status_code=200, message="Cart is empty")
+        return StandardResponse[None](message="Cart is empty")
     record.delete()
     db.commit()
-    return StandardResponse[None](status_code=200, message="Cart cleared")
+    return StandardResponse[None](message="Cart cleared")
 
 
 @cart_router.get("/all", response_model=BaseResponse[list[CartCommodity]])
-def cart_all(
+def all_cart(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[list[CartCommodity]]:
     data = db.query(CartDb).filter(CartDb.uid == user.uid).all()
     if not data:
-        return StandardResponse[list[CartCommodity]](
-            status_code=200, message=None, data=[]
-        )
+        return StandardResponse[list[CartCommodity]](message=None, data=[])
 
     commodities_data = (
         db.query(CommodityDb)
@@ -102,6 +100,4 @@ def cart_all(
             )
         )
 
-    return StandardResponse[list[CartCommodity]](
-        status_code=200, message=None, data=commodities
-    )
+    return StandardResponse[list[CartCommodity]](message=None, data=commodities)

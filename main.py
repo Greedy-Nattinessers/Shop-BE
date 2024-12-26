@@ -5,6 +5,7 @@ from slowapi.errors import RateLimitExceeded
 
 from Models.response import http_exception_handler, validation_exception_handler
 from Routers.cart import cart_router
+from Routers.order import order_router
 from Routers.shop import shop_router
 from Routers.user import user_router
 from Services.Limiter.size_limiter import LimitUploadSize
@@ -31,3 +32,4 @@ app.add_middleware(LimitUploadSize, max_upload_size=1024 * 1024 * 25)  # ~25MB
 app.include_router(user_router)
 app.include_router(shop_router)
 app.include_router(cart_router)
+app.include_router(order_router)

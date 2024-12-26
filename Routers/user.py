@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from Models.database import AddressDb, UserDb
 from Models.response import BaseResponse, ExceptionResponseEnum, StandardResponse
 from Models.user import (
-    AddressRequest,
+    AddressBase,
     Gender,
     Permission,
     Token,
@@ -49,9 +49,7 @@ async def user_req_register_captcha(
     captcha = send_captcha(normalized_email, Purpose.REGISTER, ip)
     request_id = uuid4().hex
     await cache.set(key=f"{normalized_email}_{request_id}", value=captcha, ttl=300)
-    return StandardResponse[str](
-        status_code=200, message="Captcha sent", data=request_id
-    )
+    return StandardResponse[str](message="Captcha sent", data=request_id)
 
 
 @user_router.get("/captcha/recover", response_model=BaseResponse[str])
@@ -69,14 +67,12 @@ async def user_req_recover_captcha(
     captcha = send_captcha(normalized_email, Purpose.RECOVER_PASSWORD, ip)
     request_id = uuid4().hex
     await cache.set(key=f"{normalized_email}_{request_id}", value=captcha, ttl=300)
-    return StandardResponse[str](
-        status_code=200, message="Captcha sent", data=request_id
-    )
+    return StandardResponse[str](message="Captcha sent", data=request_id)
 
 
 @user_router.post("/register", response_model=BaseResponse, status_code=201)
 @freq_limiter.limit("10/minute")
-async def user_reg(
+async def register_user(
     request: Request,
     email: str = Form(),
     username: str = Form(),
@@ -130,7 +126,7 @@ async def user_reg(
 
 @user_router.post("/login", response_model=BaseResponse[Token])
 @freq_limiter.limit("10/minute")
-def user_login(
+def login_user(
     request: Request,
     body: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
@@ -154,7 +150,7 @@ def user_login(
 
 @user_router.post("/recover", response_model=BaseResponse)
 @freq_limiter.limit("10/minute")
-async def user_recover(
+async def recover_user(
     request: Request,
     email: str = Form(),
     password: str = Form(),
@@ -184,13 +180,11 @@ async def user_recover(
     username = record.username
     db.commit()
 
-    return StandardResponse[str](
-        status_code=200, message="Password updated", data=username
-    )
+    return StandardResponse[str](message="Password recoverd", data=username)
 
 
 @user_router.put("/profile/{uid}", response_model=BaseResponse)
-def user_update(
+def edit_user(
     uid: UUID,
     body: UpdateUser,
     user: User = Depends(get_current_user),
@@ -212,25 +206,34 @@ def user_update(
                 bytes(body.password, "utf-8"), bcrypt.gensalt()
             ).decode("utf-8")
         db.commit()
-        return StandardResponse[None](status_code=200, message="User updated")
+        return StandardResponse[None](message="User updated")
     else:
         raise ExceptionResponseEnum.NOT_FOUND()
 
 
 @user_router.get("/profile", response_model=BaseResponse[User])
-def user_profile_self(
+def self_profile_user(
     user: User = Depends(get_current_user),
 ) -> StandardResponse[User]:
     return StandardResponse[User](data=user)
 
 
 @user_router.get("/profile/{uid}", response_model=BaseResponse[User])
-def user_profile(
+def profile_user(
     uid: UUID,
     db: Session = Depends(get_db),
 ) -> StandardResponse[User]:
     if (record := db.query(UserDb).filter(UserDb.uid == uid.hex).first()) is not None:
-        return StandardResponse[User](data=User(**record.__dict__))
+        return StandardResponse[User](
+            data=User(
+                uid=record.uid,
+                username=record.username,
+                email=record.email,
+                permission=Permission(record.permission),
+                birthday=record.birthday,
+                gender=Gender(record.gender),
+            )
+        )
     else:
         raise ExceptionResponseEnum.NOT_FOUND()
 
@@ -246,59 +249,56 @@ def get_address(
         message=None,
         data=[
             UserAddress(
-                uid=item.uid,
                 aid=item.aid,
-                is_default=item.is_default,
-                address=item.address,
-                phone=item.phone,
+                uid=item.uid,
                 name=item.name,
+                phone=item.phone,
+                address=item.address,
+                is_default=item.is_default,
             )
             for item in record
         ],
     )
 
 
-@user_router.post("/address", response_model=BaseResponse, status_code=201)
+@user_router.post("/address", response_model=BaseResponse[str], status_code=201)
 def add_address(
-    body: AddressRequest,
+    body: AddressBase,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> StandardResponse[None]:
+) -> StandardResponse[str]:
     if body.is_default:
         db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
             {"is_default": False}
         )
-    db.add(AddressDb(**body.to_address(user.uid).model_dump()))
+    aid = uuid4().hex
+    db.add(AddressDb(uid=user.uid, aid=aid, **body.model_dump()))
     db.commit()
-    return StandardResponse[None](status_code=201, message="Address added")
+    return StandardResponse[str](status_code=201, message="Address added", data=aid)
 
 
 @user_router.put("/address/{aid}", response_model=BaseResponse)
-def update_address(
+def edit_address(
     aid: UUID,
-    body: AddressRequest,
+    body: AddressBase,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (
-        record := (
-            db.query(AddressDb).filter(
-                AddressDb.uid == user.uid, AddressDb.aid == aid.hex
-            )
-        )
-    ).count() > 0:
+        record := (db.query(AddressDb).filter(AddressDb.aid == aid.hex))
+    ).first() is not None:
         if body.is_default:
             db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
                 {"is_default": False}
             )
         record.update(body.model_dump())  # type: ignore
         db.commit()
-        return StandardResponse[None](status_code=200, message="Address updated")
+        return StandardResponse[None](message="Address updated")
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
 @user_router.delete("/address/{aid}", response_model=BaseResponse)
-def delete_address(
+def remove_address(
     aid: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -310,5 +310,5 @@ def delete_address(
     ) is not None:
         db.delete(record)
         db.commit()
-        return StandardResponse[None](status_code=200, message="Address deleted")
+        return StandardResponse[None](message="Address deleted")
     raise ExceptionResponseEnum.NOT_FOUND()

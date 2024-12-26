@@ -44,10 +44,8 @@ async def add_commodity(
     db.add(
         CommodityDb(
             cid=cid.hex,
-            name=body.name,
-            price=body.price,
             images=jsonable_encoder([img.hex for img in imgs_id]),
-            description=body.description,
+            **body.model_dump(),
         )
     )
     db.commit()
@@ -74,9 +72,7 @@ def all_commodity(
         for item in db.query(CommodityDb).offset((page - 1) * 50).limit(50).all()
     ]
 
-    return StandardResponse[list[BaseCommodity]](
-        status_code=200, message=None, data=commodities
-    )
+    return StandardResponse[list[BaseCommodity]](message=None, data=commodities)
 
 
 @shop_router.get("/item/{commodity}", response_model=BaseResponse[Commodity])
@@ -160,7 +156,7 @@ async def edit_commodity(
 
             record.images = jsonable_encoder([img.hex for img in imgs_id])
         db.commit()
-        return StandardResponse[None](status_code=200, message="Commodity updated")
+        return StandardResponse[None](message="Commodity updated")
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
@@ -183,7 +179,7 @@ def remove_commodity(
         for img in imgs:
             if not remove_file(UUID(img)):
                 logger.warning(f"Failed to remove image {img}, record {cid}")
-        return StandardResponse[None](status_code=200, message="Commodity removed")
+        return StandardResponse[None](message="Commodity removed")
 
     else:
         raise ExceptionResponseEnum.NOT_FOUND()
@@ -217,18 +213,22 @@ def get_comment(
 ) -> StandardResponse[list[Comment]]:
     if db.query(CommodityDb).filter(CommodityDb.cid == cid.hex).first() is not None:
         comments = [
-            Comment(**item.__dict__)
+            Comment(
+                cid=item.cid,
+                uid=item.uid,
+                commodity=item.commodity,
+                content=item.content,
+                time=item.time,
+            )
             for item in db.query(CommentDb).filter(CommentDb.commodity == cid.hex).all()
         ]
 
-        return StandardResponse[list[Comment]](
-            status_code=200, message=None, data=comments
-        )
+        return StandardResponse[list[Comment]](message=None, data=comments)
     raise ExceptionResponseEnum.NOT_FOUND()
 
 
 @shop_router.delete("/comment/{id}", response_model=BaseResponse)
-def delete_comment(
+def remove_comment(
     id: UUID,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -240,5 +240,5 @@ def delete_comment(
             raise ExceptionResponseEnum.PERMISSION_DENIED()
         db.delete(record)
         db.commit()
-        return StandardResponse[None](status_code=200, message="Comment removed")
+        return StandardResponse[None](message="Comment removed")
     raise ExceptionResponseEnum.NOT_FOUND()

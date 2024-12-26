@@ -2,28 +2,36 @@ import pytest
 from fastapi.testclient import TestClient
 
 from Models.response import BaseResponse
-from Models.user import AddressRequest, UserAddress
+from Models.user import AddressBase, UserAddress
 
 
-@pytest.mark.parametrize(
-    "address",
-    [
-        AddressRequest(name="A1", phone="1234567890", address="Foo", is_default=True),
-        AddressRequest(name="A2", phone="0987654321", address="Bar", is_default=True),
-    ],
-)
-def test_create_address(authorized_client: TestClient, address: AddressRequest):
+@pytest.fixture(scope="session")
+def address(authorized_client: TestClient):
     response = authorized_client.post(
         "/user/address",
-        json=address.model_dump(),
+        json=AddressBase(
+            name="A1", phone="1234567890", address="Foo", is_default=True
+        ).model_dump(),
     )
 
     assert response.status_code == 201
-    BaseResponse[None].model_validate(response.json())
+    aid = BaseResponse[str].model_validate(response.json()).data
+    assert aid is not None
+    return aid
 
 
-@pytest.mark.order(after="test_create_address")
-def test_all_address(authorized_client: TestClient):
+def test_add_address(authorized_client: TestClient):
+    response = authorized_client.post(
+        "/user/address",
+        json=AddressBase(
+            name="A2", phone="1234567890", address="Bar", is_default=True
+        ).model_dump(),
+    )
+
+    assert response.status_code == 201
+    aid = BaseResponse[str].model_validate(response.json()).data
+    assert aid is not None
+
     response = authorized_client.get("/user/address")
 
     assert response.status_code == 200
@@ -33,19 +41,12 @@ def test_all_address(authorized_client: TestClient):
     assert len(default_list) == 1 and default_list[0].name == "A2"
 
 
-@pytest.mark.order(after="test_all_address")
-def test_edit_address(authorized_client: TestClient):
-    get_response = authorized_client.get("/user/address")
-
-    assert get_response.status_code == 200
-    data = BaseResponse[list[UserAddress]].model_validate(get_response.json()).data
-    assert data is not None
-
-    aid = data[0].aid
+@pytest.mark.order(after="test_add_address")
+def test_edit_address(authorized_client: TestClient, address: str):
     response = authorized_client.put(
-        f"/user/address/{aid}",
-        json=AddressRequest(
-            name="A3", phone="1234567890", address="Foo", is_default=False
+        f"/user/address/{address}",
+        json=AddressBase(
+            name="A3", phone="1234567890", address="Banana", is_default=False
         ).model_dump(),
     )
 
@@ -54,19 +55,34 @@ def test_edit_address(authorized_client: TestClient):
 
     response = authorized_client.get("/user/address")
     data = BaseResponse[list[UserAddress]].model_validate(response.json()).data
-    assert data is not None and data[0].name == "A3"
-
-
-@pytest.mark.order(after="test_edit_address")
-def test_delete_address(authorized_client: TestClient):
-    get_response = authorized_client.get("/user/address")
-
-    assert get_response.status_code == 200
-    data = BaseResponse[list[UserAddress]].model_validate(get_response.json()).data
     assert data is not None
+    assert [item for item in data if item.aid == address][0].address == "Banana"
 
-    aid = data[0].aid
-    response = authorized_client.delete(f"/user/address/{aid}")
+    response = authorized_client.put(
+        f"/user/address/{address}",
+        json=AddressBase(
+            name="A4", phone="1234567890", address="DX", is_default=True
+        ).model_dump(),
+    )
 
     assert response.status_code == 200
     BaseResponse[None].model_validate(response.json())
+
+    response = authorized_client.get("/user/address")
+    data = BaseResponse[list[UserAddress]].model_validate(response.json()).data
+    assert data is not None
+    default_list = [item for item in data if item.is_default]
+    assert len(default_list) == 1 and default_list[0].name == "A4"
+
+
+@pytest.mark.order(after="test_edit_address")
+def test_delete_address(authorized_client: TestClient, address: str):
+    response = authorized_client.delete(f"/user/address/{address}")
+
+    assert response.status_code == 200
+    BaseResponse[None].model_validate(response.json())
+
+    response = authorized_client.get("/user/address")
+    data = BaseResponse[list[UserAddress]].model_validate(response.json()).data
+    assert data is not None
+    assert len(data) == 1
