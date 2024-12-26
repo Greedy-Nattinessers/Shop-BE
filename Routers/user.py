@@ -268,12 +268,20 @@ def add_address(
     db: Session = Depends(get_db),
 ) -> StandardResponse[str]:
     if body.is_default:
-        db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
-            {"is_default": False}
+        existing_default = (
+            db.query(AddressDb)
+            .filter(AddressDb.uid == user.uid, AddressDb.is_default)
+            .first()
         )
+        if existing_default:
+            db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
+                {"is_default": False}
+            )
+
     aid = uuid4().hex
     db.add(AddressDb(uid=user.uid, aid=aid, **body.model_dump()))
     db.commit()
+
     return StandardResponse[str](status_code=201, message="Address added", data=aid)
 
 
@@ -288,11 +296,18 @@ def edit_address(
         record := (db.query(AddressDb).filter(AddressDb.aid == aid.hex))
     ).first() is not None:
         if body.is_default:
-            db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
-                {"is_default": False}
+            existing_default = (
+                db.query(AddressDb)
+                .filter(AddressDb.uid == user.uid, AddressDb.is_default)
+                .first()
             )
+            if existing_default:
+                db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
+                    {"is_default": False}
+                )
         record.update(body.model_dump())  # type: ignore
         db.commit()
+
         return StandardResponse[None](message="Address updated")
     raise ExceptionResponseEnum.NOT_FOUND()
 
