@@ -13,6 +13,7 @@ def create_commodity(authorized_client: TestClient):
     for file in ["Tests/Resources/commodity.jpg", "Tests/Resources/commodity_2.png"]:
         with open(file, "rb") as f:
             images.append(("images", (f.name, f.read(), "image/jpeg")))
+
     response = authorized_client.post(
         "/shop/add",
         data={
@@ -26,6 +27,7 @@ def create_commodity(authorized_client: TestClient):
     assert response.status_code == 201
     cid = BaseResponse[str].model_validate(response.json()).data
     assert cid is not None
+
     return cid
 
 
@@ -88,6 +90,12 @@ def test_comment(authorized_client: TestClient, create_commodity: str):
     data = BaseResponse[list[Comment]].model_validate(get_response.json()).data
     assert data is not None and len(data) == 0
 
+    response = authorized_client.post(
+        f"/shop/item/{create_commodity}/comment", json={"content": "Leave Comment"}
+    )
+    assert response.status_code == 201
+    BaseResponse[None].model_validate(response.json())
+
 
 @pytest.mark.order(after="test_get_commodity")
 def test_commodity_edit(authorized_client: TestClient, create_commodity: str):
@@ -108,7 +116,7 @@ def test_commodity_edit(authorized_client: TestClient, create_commodity: str):
     data = BaseResponse[Commodity].model_validate(response.json()).data
     assert data is not None
     assert data.price == 200
-    assert data.images.__len__() == 1
+    assert len(data.images) == 1
 
     album_response = authorized_client.get(f"/shop/image/{data.album}")
     assert album_response.status_code == 200

@@ -28,13 +28,13 @@ class User(BaseModel):
     permission: Permission
     birthday: date | None
     gender: Gender
+    aid: str | None
 
 
 class AddressBase(BaseModel):
     name: str
     phone: str
     address: str
-    is_default: bool
 
 
 class UserAddress(AddressBase):

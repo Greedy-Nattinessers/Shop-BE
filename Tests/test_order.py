@@ -28,9 +28,8 @@ def order_commodity(authorized_client: TestClient):
 def address(authorized_client: TestClient):
     response = authorized_client.post(
         "/user/address",
-        json=AddressBase(
-            name="O1", phone="1234567890", address="Order", is_default=False
-        ).model_dump(),
+        json=AddressBase(name="O1", phone="1234567890", address="Order").model_dump(),
+        params={"is_default": False},
     )
 
     assert response.status_code == 201

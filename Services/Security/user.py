@@ -54,6 +54,7 @@ def get_current_user(
         permission=Permission(user.permission),
         gender=Gender(user.gender),
         birthday=user.birthday,
+        aid=user.aid,
     )
 
 

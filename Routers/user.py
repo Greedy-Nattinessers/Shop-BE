@@ -118,6 +118,7 @@ async def register_user(
             permission=Permission.ADMIN() if is_init_user else Permission.USER(),
             birthday=None,
             gender=gender_data.value,
+            aid=None,
         )
     )
     db.commit()
@@ -232,14 +233,15 @@ def profile_user(
                 permission=Permission(record.permission),
                 birthday=record.birthday,
                 gender=Gender(record.gender),
+                aid=record.aid,
             )
         )
     else:
         raise ExceptionResponseEnum.NOT_FOUND()
 
 
-@user_router.get("/address", response_model=BaseResponse[UserAddress])
-def get_address(
+@user_router.get("/address", response_model=BaseResponse[list[UserAddress]])
+def all_address(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StandardResponse[list[UserAddress]]:
     record = db.query(AddressDb).filter(AddressDb.uid == user.uid).all()
@@ -254,30 +256,40 @@ def get_address(
                 name=item.name,
                 phone=item.phone,
                 address=item.address,
-                is_default=item.is_default,
             )
             for item in record
         ],
     )
 
 
+@user_router.get("/address/{aid}", response_model=BaseResponse[UserAddress])
+def get_address(
+    aid: UUID,
+    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StandardResponse[UserAddress]:
+    if (
+        record := db.query(AddressDb).filter(AddressDb.aid == aid.hex).first()
+    ) is not None:
+        return StandardResponse[UserAddress](
+            data=UserAddress(
+                aid=record.aid,
+                uid=record.uid,
+                name=record.name,
+                phone=record.phone,
+                address=record.address,
+            )
+        )
+    raise ExceptionResponseEnum.NOT_FOUND()
+
+
 @user_router.post("/address", response_model=BaseResponse[str], status_code=201)
 def add_address(
     body: AddressBase,
+    is_default: bool = False,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[str]:
-    if body.is_default:
-        existing_default = (
-            db.query(AddressDb)
-            .filter(AddressDb.uid == user.uid, AddressDb.is_default)
-            .first()
-        )
-        if existing_default:
-            db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
-                {"is_default": False}
-            )
-
     aid = uuid4().hex
     db.add(
         AddressDb(
@@ -286,9 +298,12 @@ def add_address(
             address=body.address,
             phone=body.phone,
             name=body.name,
-            is_default=body.is_default,
         )
     )
+    if is_default:
+        user_db = db.query(UserDb).filter(UserDb.uid == user.uid).first()
+        if user_db:
+            user_db.aid = aid
     db.commit()
 
     return StandardResponse[str](status_code=201, message="Address added", data=aid)
@@ -298,23 +313,19 @@ def add_address(
 def edit_address(
     aid: UUID,
     body: AddressBase,
+    is_default: bool = False,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (
         record := (db.query(AddressDb).filter(AddressDb.aid == aid.hex))
     ).first() is not None:
-        if body.is_default:
-            existing_default = (
-                db.query(AddressDb)
-                .filter(AddressDb.uid == user.uid, AddressDb.is_default)
-                .first()
-            )
-            if existing_default:
-                db.query(AddressDb).filter(AddressDb.uid == user.uid).update(
-                    {"is_default": False}
-                )
         record.update(body.model_dump())  # type: ignore
+
+        if is_default:
+            user_db = db.query(UserDb).filter(UserDb.uid == user.uid).first()
+            if user_db:
+                user_db.aid = aid.hex
         db.commit()
 
         return StandardResponse[None](message="Address updated")
@@ -324,14 +335,16 @@ def edit_address(
 @user_router.delete("/address/{aid}", response_model=BaseResponse)
 def remove_address(
     aid: UUID,
-    user: User = Depends(get_current_user),
+    _: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StandardResponse[None]:
     if (
-        record := db.query(AddressDb)
-        .filter(AddressDb.uid == user.uid, AddressDb.aid == aid.hex)
-        .first()
+        record := db.query(AddressDb).filter(AddressDb.aid == aid.hex).first()
     ) is not None:
+        if (
+            user_db := db.query(UserDb).filter(UserDb.aid == aid.hex).first()
+        ) is not None and user_db.aid == aid.hex:
+            user_db.aid = None
         db.delete(record)
         db.commit()
         return StandardResponse[None](message="Address deleted")

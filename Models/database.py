@@ -16,6 +16,7 @@ class UserDb(Base):
     permission: Mapped[int] = mapped_column(INT, nullable=False)
     birthday: Mapped[date | None] = mapped_column(DATE, nullable=True)
     gender: Mapped[int] = mapped_column(INT, nullable=False)
+    aid: Mapped[str | None] = mapped_column(VARCHAR(32), nullable=True)
 
 
 class CommodityDb(Base):
@@ -34,7 +35,6 @@ class AddressDb(Base):
     address: Mapped[str] = mapped_column(TEXT, nullable=False)
     phone: Mapped[str] = mapped_column(TEXT, nullable=False)
     name: Mapped[str] = mapped_column(TEXT, nullable=False)
-    is_default: Mapped[bool] = mapped_column(INT, nullable=False)
 
 
 class CartDb(Base):
