@@ -54,6 +54,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+junit.xml
+prof/
 
 # Translations
 *.mo
@@ -196,3 +198,4 @@ Services/Config/config.json
 
 # Local Storage
 Services/Storage/data/*
+
