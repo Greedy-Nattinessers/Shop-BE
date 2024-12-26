@@ -94,6 +94,9 @@ async def register_user(
     except ValueError:
         raise ExceptionResponseEnum.INVALID_OPERATION()
 
+    if password.strip().__len__() < 6:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
+
     if (
         db.query(UserDb)
         .filter((UserDb.email == normalized_email) | (UserDb.username == username))
@@ -166,6 +169,9 @@ async def recover_user(
         emailinfo = validate_email(email, check_deliverability=False)
         normalized_email = emailinfo.normalized
     except EmailNotValidError:
+        raise ExceptionResponseEnum.INVALID_OPERATION()
+
+    if password.strip().__len__() < 6:
         raise ExceptionResponseEnum.INVALID_OPERATION()
 
     if (
