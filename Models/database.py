@@ -56,6 +56,19 @@ class CommentDb(Base):
     )
 
 
+class OrderDb(Base):
+    __tablename__ = "order"
+    oid: Mapped[str] = mapped_column(VARCHAR(32), primary_key=True)
+    uid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    cid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    aid: Mapped[str] = mapped_column(VARCHAR(32), nullable=False)
+    count: Mapped[int] = mapped_column(INT, nullable=False)
+    time: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), default=datetime.now()
+    )
+    status: Mapped[int] = mapped_column(INT, nullable=False)
+
+
 if config.test is not None and config.test.is_test:
     Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine, checkfirst=True)
