@@ -279,7 +279,16 @@ def add_address(
             )
 
     aid = uuid4().hex
-    db.add(AddressDb(uid=user.uid, aid=aid, **body.model_dump()))
+    db.add(
+        AddressDb(
+            uid=user.uid,
+            aid=aid,
+            address=body.address,
+            phone=body.phone,
+            name=body.name,
+            is_default=body.is_default,
+        )
+    )
     db.commit()
 
     return StandardResponse[str](status_code=201, message="Address added", data=aid)
