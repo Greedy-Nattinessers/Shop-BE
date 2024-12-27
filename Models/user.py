@@ -47,6 +47,7 @@ class UpdateUser(BaseModel):
     gender: Gender | None = None
     password: str | None = None
     permission: Permission | None = None
+    aid: str | None = None
 
 
 class Token(BaseModel):

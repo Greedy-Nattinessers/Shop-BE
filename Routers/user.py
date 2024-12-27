@@ -205,6 +205,8 @@ def edit_user(
             record.birthday = body.birthday
         if body.gender is not None:
             record.gender = body.gender.value
+        if body.aid is not None:
+            record.aid = body.aid
         if body.permission is not None and record.permission != body.permission.value:
             assert verify_user(user, Permission.ADMIN)
             record.permission = body.permission()
