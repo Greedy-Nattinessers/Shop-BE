@@ -16,7 +16,7 @@
 
 - `Python` 3.12+
 - `MySQL` 服务器
-- `uv`
+- `uv` [这是什么?](https://github.com/astral-sh/uv)
 
 安装指定的 Python 版本:
 
@@ -31,7 +31,9 @@ Debian / Ubuntu:
 ```bash
 sudo apt-get install python3-dev default-libmysqlclient-dev build-essential pkg-config
 ```
+
 Red Hat / CentOS:
+
 ```bash
 sudo yum install python3-devel mysql-devel pkgconfig
 ```
@@ -41,6 +43,8 @@ sudo yum install python3-devel mysql-devel pkgconfig
 ```bash
 uv sync
 ```
+
+如果安装依赖过慢希望指定 PyPI 镜像源，请添加 `--index "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"` 参数。
 
 如果是在开发环境下需要运行测试代码，可以使用以下命令安装开发环境下的依赖:
 
@@ -58,12 +62,42 @@ uv sync --dev
 
 如果是调试 FastAPI 服务，可以使用以下命令:
 
-<del>uv run fastapi dev</dev>
-
-`FastAPI` 的 `dev` 命令会造成自动重载卡死，请先使用部署模式运行。
-
 ```bash
-uv run fastapi run
+uv run uvicorn main:app --reload
 ```
 
 部署，推荐使用 `Docker` 来完成。
+
+如果你希望使用后端和数据库一同被 Docker 托管，请修改`docker-compose.yml`中的环境变量:
+
+```yaml
+services:
+  web:
+    container_name: web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql_db
+
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password # 修改为自己的密码
+      MYSQL_DATABASE: shop_be # 修改为自己的数据库名
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+```
+
+之后在 `config.toml` 中填入同样的信息即可。`host`字段填入 `mysql_db`。
+
+如果希望后端连接外置数据库，直接删去`docker-compose.yml`中的`mysql_db`服务和依赖即可。
