@@ -68,6 +68,7 @@ uv run uvicorn main:app --reload
 
 部署，推荐使用 `Docker` 来完成。
 
+拉取仓库后，先在本地执行一次`uv sync` 创建依赖列表。
 如果你希望使用后端和数据库一同被 Docker 托管，请修改`docker-compose.yml`中的环境变量:
 
 ```yaml
