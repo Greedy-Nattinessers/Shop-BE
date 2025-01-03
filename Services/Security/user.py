@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from Models.database import UserDb
 from Models.response import ExceptionResponseEnum
-from Models.user import Gender, Permission, User
+from Models.user import Gender, Permission, TokenData, User
 from Services.Config.config import config
 from Services.Database.database import get_db
 from Services.Log.logger import logging
@@ -20,14 +20,14 @@ SECRET_KEY = config.security.secret_key
 log = logging.getLogger("security")
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
+def create_access_token(data: TokenData, expires_delta: timedelta | None = None) -> str:
+    to_encode = data.model_copy()
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
         expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    to_encode.exp = expire
+    encoded_jwt = jwt.encode(to_encode.model_dump(), SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 

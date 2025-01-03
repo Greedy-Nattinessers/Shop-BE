@@ -15,6 +15,7 @@ from Models.user import (
     Gender,
     Permission,
     Token,
+    TokenData,
     UpdateUser,
     User,
     UserAddress,
@@ -145,7 +146,7 @@ def login_user(
         raise ExceptionResponseEnum.AUTH_FAILED()
 
     token = create_access_token(
-        data={"sub": user.username, "id": user.uid},
+        data=TokenData(sub=user.uid, id=user.uid),
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
@@ -187,7 +188,7 @@ async def recover_user(
     username = record.username
     db.commit()
 
-    return StandardResponse[str](message="Password recoverd", data=username)
+    return StandardResponse[str](message="Password recovered", data=username)
 
 
 @user_router.put("/profile/{uid}", response_model=BaseResponse)
